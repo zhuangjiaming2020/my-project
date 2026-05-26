@@ -1,5 +1,8 @@
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\CorsConfig.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\MallGraphConfig.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\CustomerServiceController.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\MockConfigController.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\ApiConfig.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\Logistics.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\LogisticsEvent.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\Order.java
@@ -13,3 +16,6 @@ E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\n
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\ResponseFormatterNode.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\MallCustomerServiceApplication.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\mock\MockMallDataService.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\ConfigurableMallDataService.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\MallDataService.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\MockApiConfigService.java

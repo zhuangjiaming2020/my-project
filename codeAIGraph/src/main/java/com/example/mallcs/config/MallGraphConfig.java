@@ -8,7 +8,7 @@ import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.example.mallcs.graph.MallStateFactory;
 import com.example.mallcs.graph.nodes.*;
-import com.example.mallcs.mock.MockMallDataService;
+import com.example.mallcs.service.MallDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -70,7 +70,7 @@ public class MallGraphConfig {
     @Bean
     public CompiledGraph mallCustomerServiceGraph(
             ChatModel chatModel,
-            MockMallDataService mockMallDataService) throws GraphStateException {
+            MallDataService mallDataService) throws GraphStateException {
 
         ChatClient.Builder chatClientBuilder = ChatClient.builder(chatModel);
 
@@ -80,9 +80,9 @@ public class MallGraphConfig {
         // 1. 创建节点（传入所需依赖）
         // ----------------------------------------------------------
         var intentParserNode    = node_async(new IntentParserNode(chatClientBuilder));
-        var logisticsQueryNode  = node_async(new LogisticsQueryNode(mockMallDataService));
-        var orderStatusNode     = node_async(new OrderStatusNode(mockMallDataService));
-        var orderReviewNode     = node_async(new OrderReviewNode(mockMallDataService));
+        var logisticsQueryNode  = node_async(new LogisticsQueryNode(mallDataService));
+        var orderStatusNode     = node_async(new OrderStatusNode(mallDataService));
+        var orderReviewNode     = node_async(new OrderReviewNode(mallDataService));
         var generalAnswerNode   = node_async(new GeneralAnswerNode(chatClientBuilder));
         var responseFormatter   = node_async(new ResponseFormatterNode(chatClientBuilder));
 

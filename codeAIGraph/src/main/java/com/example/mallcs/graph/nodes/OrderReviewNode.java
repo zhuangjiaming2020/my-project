@@ -2,8 +2,7 @@ package com.example.mallcs.graph.nodes;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
-import com.example.mallcs.domain.ReviewResult;
-import com.example.mallcs.mock.MockMallDataService;
+import com.example.mallcs.service.MallDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,16 +11,16 @@ import java.util.Map;
 /**
  * 订单评价节点。
  *
- * <p>根据意图解析节点提取的订单号、评分、评价内容，调用数据服务提交评价。
- * 若关键信息缺失，返回引导提示。
+ * <p>根据意图解析节点提取的订单号、评分、评价内容，
+ * 调用 {@link MallDataService} 提交评价并将结果写入 query_result。
  */
 public class OrderReviewNode implements NodeAction {
 
     private static final Logger log = LoggerFactory.getLogger(OrderReviewNode.class);
 
-    private final MockMallDataService dataService;
+    private final MallDataService dataService;
 
-    public OrderReviewNode(MockMallDataService dataService) {
+    public OrderReviewNode(MallDataService dataService) {
         this.dataService = dataService;
     }
 
@@ -33,7 +32,6 @@ public class OrderReviewNode implements NodeAction {
                 .orElse(0);
         String content = state.value("review_content").map(Object::toString).orElse("");
 
-        // 校验必要参数
         if (orderNo.isBlank()) {
             log.warn("[OrderReview] 缺少订单号");
             return Map.of("query_result",
@@ -51,26 +49,10 @@ public class OrderReviewNode implements NodeAction {
         }
 
         log.info("[OrderReview] 提交评价: orderId={}, rating={}", orderNo, rating);
+        String result = dataService.submitOrderReview(orderNo, rating, content);
+        log.info("[OrderReview] 评价完成，orderNo={}", orderNo);
 
-        ReviewResult result = dataService.submitReview(orderNo, rating, content);
-
-        String queryResult = formatReviewResult(result);
-        log.info("[OrderReview] 评价结果: success={}", result.isSuccess());
-
-        return Map.of("query_result", queryResult);
-    }
-
-    private String formatReviewResult(ReviewResult result) {
-        if (result.isSuccess()) {
-            String stars = "⭐".repeat(result.getRating());
-            return String.format(
-                    "评价提交成功！\n订单号: %s\n评分: %s（%d星）\n评价内容: %s\n评价编号: %s\n%s",
-                    result.getOrderId(), stars, result.getRating(),
-                    result.getContent(), result.getReviewId(), result.getMessage()
-            );
-        } else {
-            return String.format("评价提交失败。\n原因: %s", result.getMessage());
-        }
+        return Map.of("query_result", result);
     }
 
     private String generateDefaultContent(int rating) {
