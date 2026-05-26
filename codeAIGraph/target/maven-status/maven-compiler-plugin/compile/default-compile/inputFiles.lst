@@ -1,0 +1,15 @@
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\MallGraphConfig.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\CustomerServiceController.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\Logistics.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\LogisticsEvent.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\Order.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\ReviewResult.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\MallStateFactory.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\GeneralAnswerNode.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\IntentParserNode.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\LogisticsQueryNode.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\OrderReviewNode.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\OrderStatusNode.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\ResponseFormatterNode.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\MallCustomerServiceApplication.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\mock\MockMallDataService.java
