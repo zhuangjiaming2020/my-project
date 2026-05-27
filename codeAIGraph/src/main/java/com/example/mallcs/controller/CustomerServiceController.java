@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,9 +30,19 @@ public class CustomerServiceController {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerServiceController.class);
 
+    // 商城客服 Graph 工作流实例，用于处理用户对话请求
+    // CompiledGraph 是 Spring AI Graph 的核心组件，包含已编译的节点和执行逻辑
     private final CompiledGraph mallCustomerServiceGraph;
 
+    /**
+     * 构造函数 - 通过依赖注入获取已编译的 Graph 实例
+     *
+     * @param mallCustomerServiceGraph 由 Spring 容器自动注入的 CompiledGraph 对象
+     *                                 该对象在 MallGraphConfig 配置类中定义和初始化
+     *                                 包含了所有节点（意图识别、物流查询、订单状态等）和边的连接关系
+     */
     public CustomerServiceController(CompiledGraph mallCustomerServiceGraph) {
+        // 将注入的 Graph 实例赋值给成员变量，供后续的对话接口使用
         this.mallCustomerServiceGraph = mallCustomerServiceGraph;
     }
 
@@ -84,23 +93,35 @@ public class CustomerServiceController {
 
         try {
             Map<String, Object> initialState = buildInitialState(request.message());
+            // 构建 Graph 运行配置，设置线程 ID 用于会话状态管理
+            // threadId 确保同一会话的多轮对话可以共享上下文信息
             RunnableConfig config = RunnableConfig.builder()
-                    .threadId(sessionId)
+                    .threadId(sessionId)  // 使用会话 ID 作为线程标识，实现会话隔离
                     .build();
 
-            // 执行 Graph 并收集最终状态
-            AtomicReference<String> finalAnswer    = new AtomicReference<>("抱歉，我暂时无法处理您的请求，请稍后重试。");
-            AtomicReference<String> sceneType      = new AtomicReference<>("unknown");
-            AtomicReference<String> orderNo        = new AtomicReference<>("");
+            // 创建原子引用变量用于在流式处理中安全地收集和存储最终结果
+            // AtomicReference 保证在多线程环境下的线程安全性
+            AtomicReference<String> finalAnswer    = new AtomicReference<>("抱歉，我暂时无法处理您的请求，请稍后重试。");  // 默认失败提示
+            AtomicReference<String> sceneType      = new AtomicReference<>("unknown");  // 场景类型（物流查询/订单状态等）
+            AtomicReference<String> orderNo        = new AtomicReference<>("");  // 订单号
 
+            //两者最核心的区别在于：call（通常指 invoke()）是同步非流式调用，而 stream() 是异步流式调用。
+            // 执行商城客服 Graph 工作流，以流式方式获取每个节点的输出
+            // stream() 方法返回 Flux<NodeOutput>，允许逐节点观察执行进度
             mallCustomerServiceGraph.stream(initialState, config)
+                    // doOnNext: 对每个节点输出进行副作用处理（不改变数据流）
                     .doOnNext(output -> {
+                        // 记录当前完成的节点名称，便于调试和追踪执行流程
                         log.debug("[Controller] 节点完成: {}", output.node());
-                        // 从每个节点的输出中更新状态快照
+                        // 从当前节点的输出状态中提取关键信息并更新到原子引用中
+                        // 这样可以在所有节点执行完毕后获取最终的完整状态
                         extractStateValues(output, finalAnswer, sceneType, orderNo);
                     })
+                    // blockLast(): 阻塞等待整个流执行完毕，返回最后一个元素（同步等待异步流完成）
+                    // 这使得同步接口能够等待 Graph 完全执行后再返回结果
                     .blockLast();
 
+            // 记录 Graph 执行完成的日志，包含场景类型和回答长度等关键信息
             log.info("[Controller] Graph 执行完毕: scene={}, answer.length={}",
                     sceneType.get(), finalAnswer.get().length());
 
