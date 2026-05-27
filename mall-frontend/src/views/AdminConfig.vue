@@ -197,7 +197,21 @@
             <div class="tab-content">
               <div class="body-toolbar">
                 <span class="section-hint">POST 请求体模板（JSON），支持占位符替换</span>
-                <el-tag type="info" size="small" effect="light">application/json</el-tag>
+                <div class="body-toolbar-right">
+                  <el-tooltip content="格式化 JSON" placement="top">
+                    <el-button
+                      size="small"
+                      plain
+                      class="beautify-btn"
+                      :disabled="!currentConfig.requestBody"
+                      @click="beautifyBody"
+                    >
+                      <el-icon style="margin-right:4px"><MagicStick /></el-icon>
+                      美化
+                    </el-button>
+                  </el-tooltip>
+                  <el-tag type="info" size="small" effect="light">application/json</el-tag>
+                </div>
               </div>
               <div
                 v-if="currentConfig.method !== 'POST' && currentConfig.method !== 'PUT'"
@@ -234,14 +248,38 @@
       </div>
 
       <!-- 测试响应区 -->
-      <div class="response-panel" v-if="testResult !== null || testing">
+      <div
+        class="response-panel"
+        v-if="testResult !== null || testing"
+        :style="{ height: responseHeight + 'px' }"
+      >
+        <!-- 拖拽调整高度的把手 -->
+        <div class="resize-handle" @mousedown="startResize" title="拖动调整高度">
+          <div class="resize-dots" />
+        </div>
+
         <div class="response-header">
-          <span class="response-title">Response</span>
+          <span class="response-title">RESPONSE</span>
           <div class="response-meta" v-if="testResult">
             <el-tag :type="testResult.success ? 'success' : 'danger'" size="small" effect="light">
               {{ testResult.success ? '200 OK' : 'Error' }}
             </el-tag>
             <span class="elapsed">{{ testResult.elapsedMs }} ms</span>
+            <el-tooltip content="复制响应内容" placement="top">
+              <el-button text size="small" @click="copyResponse" style="color:#666">
+                <el-icon><CopyDocument /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip :content="responseExpanded ? '收起' : '最大化'" placement="top">
+              <el-button text size="small" @click="toggleExpand" style="color:#666">
+                <el-icon><component :is="responseExpanded ? 'Minus' : 'FullScreen'" /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="关闭" placement="top">
+              <el-button text size="small" @click="testResult = null" style="color:#666">
+                <el-icon><Close /></el-icon>
+              </el-button>
+            </el-tooltip>
           </div>
         </div>
 
@@ -250,7 +288,7 @@
           <span>正在发送请求...</span>
         </div>
 
-        <div v-else-if="testResult">
+        <div v-else-if="testResult" class="response-content">
           <div v-if="testResult.success" class="response-body">
             <pre>{{ formatJson(testResult.responseBody) }}</pre>
           </div>
@@ -295,8 +333,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { getAllConfigs, saveConfig, deleteConfig, testConfig, getOperationMetas } from '../api/index.js'
 
 // ====================================================================
@@ -322,6 +360,65 @@ const saving = ref(false)
 const testing = ref(false)
 const testResult = ref(null)
 const showTestDialog = ref(false)
+
+// 响应面板高度（可拖拽）
+const responseHeight = ref(300)
+const responseExpanded = ref(false)
+let prevHeight = 300
+let resizing = false
+let startY = 0
+let startH = 0
+
+function startResize(e) {
+  resizing = true
+  startY = e.clientY
+  startH = responseHeight.value
+  document.body.style.cursor = 'row-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function onMouseMove(e) {
+  if (!resizing) return
+  const delta = startY - e.clientY  // 向上拖 = 增大
+  const newH = Math.min(Math.max(startH + delta, 120), window.innerHeight - 200)
+  responseHeight.value = newH
+  responseExpanded.value = false
+}
+
+function onMouseUp() {
+  if (resizing) {
+    resizing = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }
+}
+
+function toggleExpand() {
+  if (responseExpanded.value) {
+    responseHeight.value = prevHeight
+    responseExpanded.value = false
+  } else {
+    prevHeight = responseHeight.value
+    responseHeight.value = window.innerHeight - 160
+    responseExpanded.value = true
+  }
+}
+
+function copyResponse() {
+  const text = testResult.value?.responseBody || ''
+  navigator.clipboard.writeText(formatJson(text))
+  ElMessage.success('已复制到剪贴板')
+}
+
+onMounted(() => {
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
+})
 
 const currentConfig = ref(null)
 const headerList = ref([])
@@ -493,6 +590,28 @@ async function confirmTest() {
     }
   } finally {
     testing.value = false
+  }
+}
+
+function beautifyBody() {
+  const raw = currentConfig.value?.requestBody
+  if (!raw) return
+  // 先把占位符临时换成合法 JSON 字符串，格式化后再换回
+  const PLACEHOLDER_RE = /\{\{(\w+)\}\}/g
+  const placeholders = []
+  const safe = raw.replace(PLACEHOLDER_RE, (m, key) => {
+    placeholders.push(m)
+    return `"__PH_${placeholders.length - 1}__"`
+  })
+  try {
+    let pretty = JSON.stringify(JSON.parse(safe), null, 2)
+    // 还原占位符（带引号版："__PH_0__" → {{key}}，不带引号版也兼容）
+    pretty = pretty.replace(/"__PH_(\d+)__"/g, (_, i) => placeholders[+i])
+    currentConfig.value.requestBody = pretty
+    dirty.value = true
+    ElMessage.success('JSON 已格式化')
+  } catch {
+    ElMessage.warning('JSON 格式有误，无法美化')
   }
 }
 
@@ -899,6 +1018,24 @@ function formatJson(str) {
   margin-bottom: 12px;
 }
 
+.body-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.beautify-btn {
+  background: #2d2d30 !important;
+  border-color: #3c3c3c !important;
+  color: #4ec9b0 !important;
+  font-size: 12px;
+}
+
+.beautify-btn:hover {
+  border-color: #4ec9b0 !important;
+  color: #4ec9b0 !important;
+}
+
 .body-disabled {
   display: flex;
   flex-direction: column;
@@ -963,33 +1100,65 @@ function formatJson(str) {
 .response-panel {
   background: #1a1a1a;
   border-top: 2px solid #3c3c3c;
-  max-height: 280px;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  /* height 由 JS 控制 */
+  min-height: 120px;
+  position: relative;
+}
+
+/* 拖拽把手 */
+.resize-handle {
+  height: 8px;
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  cursor: row-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover {
+  background: #37373d;
+}
+
+.resize-dots {
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #555 0px,
+    #555 3px,
+    transparent 3px,
+    transparent 6px
+  );
 }
 
 .response-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 6px 12px;
   background: #252526;
   border-bottom: 1px solid #3c3c3c;
+  flex-shrink: 0;
 }
 
 .response-title {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .response-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .elapsed {
@@ -998,9 +1167,14 @@ function formatJson(str) {
   font-family: monospace;
 }
 
-.response-body {
+.response-content {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
+}
+
+.response-body {
+  height: 100%;
   padding: 12px 16px;
 }
 
@@ -1011,25 +1185,28 @@ function formatJson(str) {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .response-error {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 16px;
   color: #f48771;
   font-size: 13px;
+  line-height: 1.6;
+  word-break: break-all;
 }
 
 .response-loading {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px;
+  padding: 20px 16px;
   color: #666;
   font-size: 13px;
+  flex-shrink: 0;
 }
 
 .rotating {
