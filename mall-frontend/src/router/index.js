@@ -1,18 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import UserChat from '../views/UserChat.vue'
-import AdminConfig from '../views/AdminConfig.vue'
+import { isLoggedIn } from '../utils/auth.js'
 
 const routes = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/Login.vue'),
+    meta: { title: '登录', public: true }
+  },
+  {
     path: '/',
     name: 'UserChat',
-    component: UserChat,
+    component: () => import('../views/UserChat.vue'),
     meta: { title: '智能客服' }
   },
   {
     path: '/admin',
     name: 'AdminConfig',
-    component: AdminConfig,
+    component: () => import('../views/AdminConfig.vue'),
     meta: { title: '接口配置管理' }
   }
 ]
@@ -22,8 +27,15 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to) => {
+router.beforeEach((to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} - 智能运维客服` : '智能运维客服'
+  if (to.meta.public) {
+    next()
+  } else if (!isLoggedIn()) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
 })
 
 export default router
