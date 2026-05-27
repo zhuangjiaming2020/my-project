@@ -47,6 +47,12 @@ import static com.alibaba.cloud.ai.graph.action.AsyncNodeAction.node_async;
  *   <li>general_answer_node：LLM 直接回答通用问题，写 final_answer，跳过 formatter</li>
  *   <li>response_formatter：LLM 将结构化数据转化为自然语言客服回复</li>
  * </ul>
+ *
+ *
+ * 在 Spring AI Alibaba Graph 框架中，StateGraph 和 CompiledGraph 的关系就如同“建筑图纸”与“建成的房屋”，体现了“定义-编译-执行”这一核心设计模式。
+ * 两者的核心区别如下：
+ * 定义与角色：StateGraph 是开发者定义工作流结构的“蓝图”，一个可变的、声明式的API，用于清晰地描绘出工作流的“骨架”；而 CompiledGraph 是由 StateGraph 编译后生成的不可变的、只读的“可执行体”，是工作流的“灵魂”，负责驱动流程执行。
+ * 生命周期：StateGraph 是“定义阶段”的产物，完全在应用启动前被构建好；CompiledGraph 则属于“执行阶段”，应用启动后通过 stateGraph.compile() 获得，并可被重复调用来处理请求。
  */
 @Configuration
 public class MallGraphConfig {
