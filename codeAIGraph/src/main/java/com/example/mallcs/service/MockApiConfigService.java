@@ -1,22 +1,19 @@
 package com.example.mallcs.service;
 
 import com.example.mallcs.domain.ApiConfig;
+import com.example.mallcs.entity.MockApiConfigEntity;
+import com.example.mallcs.mapper.MockApiConfigMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Mock 数据接口配置管理服务（内存存储）。
- *
- * <p>存储三个操作的外部 API 配置信息。管理员通过后台 REST 接口读写这些配置，
- * {@link ConfigurableMallDataService} 在执行查询时读取配置决定是否调用外部 API。
- *
- * <p>生产环境可替换为数据库持久化实现。
+ * Mock 数据接口配置管理服务（MyBatis + PostgreSQL 持久化版本）。
  */
 @Service
 public class MockApiConfigService {
@@ -29,60 +26,60 @@ public class MockApiConfigService {
             OP_ORDER_STATUS, OP_LOGISTICS_INFO, OP_SUBMIT_REVIEW
     );
 
-    private final Map<String, ApiConfig> store = new ConcurrentHashMap<>();
+    private final MockApiConfigMapper mapper;
 
-    /** 初始化默认配置（disabled，仅作示例） */
-    public MockApiConfigService() {
-        store.put(OP_ORDER_STATUS, ApiConfig.builder()
-                .operation(OP_ORDER_STATUS)
-                .enabled(false)
-                .description("查询订单状态接口")
-                .url("http://your-mall-api.com/orders/{orderId}/status")
-                .method("GET")
-                .build());
-
-        store.put(OP_LOGISTICS_INFO, ApiConfig.builder()
-                .operation(OP_LOGISTICS_INFO)
-                .enabled(false)
-                .description("查询物流信息接口")
-                .url("http://your-mall-api.com/orders/{orderId}/logistics")
-                .method("GET")
-                .build());
-
-        store.put(OP_SUBMIT_REVIEW, ApiConfig.builder()
-                .operation(OP_SUBMIT_REVIEW)
-                .enabled(false)
-                .description("提交订单评价接口")
-                .url("http://your-mall-api.com/orders/review")
-                .method("POST")
-                .requestBody("{\"orderId\": \"{{orderId}}\", \"rating\": {{rating}}, \"content\": \"{{content}}\"}")
-                .build());
+    public MockApiConfigService(MockApiConfigMapper mapper) {
+        this.mapper = mapper;
     }
 
     public Optional<ApiConfig> getConfig(String operation) {
-        return Optional.ofNullable(store.get(operation));
+        return mapper.findByOperation(operation).map(this::toApiConfig);
     }
 
     public Collection<ApiConfig> getAllConfigs() {
-        List<ApiConfig> result = new ArrayList<>();
-        for (String op : ALL_OPERATIONS) {
-            ApiConfig cfg = store.get(op);
-            if (cfg != null) result.add(cfg);
-        }
-        return result;
+        return mapper.findAll().stream()
+                .sorted(Comparator.comparingInt(e -> ALL_OPERATIONS.indexOf(e.getOperation())))
+                .map(this::toApiConfig)
+                .toList();
     }
 
+    @Transactional
     public ApiConfig saveConfig(String operation, ApiConfig config) {
-        config.setOperation(operation);
-        store.put(operation, config);
-        return config;
+        MockApiConfigEntity entity = MockApiConfigEntity.builder()
+                .operation(operation)
+                .enabled(config.isEnabled())
+                .description(config.getDescription())
+                .url(config.getUrl())
+                .method(config.getMethod() != null ? config.getMethod() : "GET")
+                .headers(config.getHeaders() != null ? config.getHeaders() : new LinkedHashMap<>())
+                .requestBody(config.getRequestBody())
+                .build();
+        mapper.upsert(entity);
+        return toApiConfig(entity);
     }
 
+    @Transactional
     public void deleteConfig(String operation) {
-        store.remove(operation);
+        mapper.deleteByOperation(operation);
     }
 
     public boolean isEnabled(String operation) {
-        return getConfig(operation).map(ApiConfig::isEnabled).orElse(false);
+        return mapper.findByOperation(operation)
+                .map(MockApiConfigEntity::isEnabled)
+                .orElse(false);
+    }
+
+    // ── 转换工具 ─────────────────────────────────────────────────
+
+    private ApiConfig toApiConfig(MockApiConfigEntity e) {
+        return ApiConfig.builder()
+                .operation(e.getOperation())
+                .enabled(e.isEnabled())
+                .description(e.getDescription())
+                .url(e.getUrl())
+                .method(e.getMethod())
+                .headers(e.getHeaders())
+                .requestBody(e.getRequestBody())
+                .build();
     }
 }

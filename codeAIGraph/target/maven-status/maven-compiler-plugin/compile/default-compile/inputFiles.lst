@@ -1,5 +1,6 @@
-E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\CorsConfig.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\MallGraphConfig.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\SecurityConfig.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\AuthController.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\CustomerServiceController.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\MockConfigController.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\ApiConfig.java
@@ -7,6 +8,9 @@ E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\LogisticsEvent.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\Order.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\ReviewResult.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\entity\AppUser.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\entity\ChatHistoryEntity.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\entity\MockApiConfigEntity.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\MallStateFactory.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\GeneralAnswerNode.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\IntentParserNode.java
@@ -14,8 +18,17 @@ E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\n
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\OrderReviewNode.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\OrderStatusNode.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\ResponseFormatterNode.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\init\DataInitializer.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\MallCustomerServiceApplication.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\mapper\ChatHistoryMapper.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\mapper\MockApiConfigMapper.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\mapper\UserMapper.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\mock\MockMallDataService.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\security\JwtAuthFilter.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\security\JwtUtil.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\ChatHistoryAdvisor.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\ConfigurableMallDataService.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\MallDataService.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\MockApiConfigService.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\service\UserService.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\typehandler\JsonMapTypeHandler.java

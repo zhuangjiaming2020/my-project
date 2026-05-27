@@ -3,11 +3,14 @@ package com.example.mallcs.controller;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
+import com.example.mallcs.service.ChatHistoryAdvisor;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,11 +20,12 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * 商城客服对话接口。
  *
- * <h3>接口列表</h3>
+ * <p>新增功能（v2）：
  * <ul>
- *   <li>POST /api/chat         - 同步对话（阻塞，等待最终答案）</li>
- *   <li>POST /api/chat/stream  - 流式对话（SSE，逐节点输出进度）</li>
- *   <li>GET  /api/chat/demo    - 演示接口（无需请求体）</li>
+ *   <li>从 JWT 中提取 userId，与 sessionId 组合存储对话历史</li>
+ *   <li>通过 {@link ChatHistoryAdvisor} 异步持久化每轮对话到 PostgreSQL</li>
+ *   <li>GET /api/chat/history/{sessionId}  - 查询指定会话历史</li>
+ *   <li>GET /api/chat/sessions             - 查询当前用户所有会话摘要</li>
  * </ul>
  */
 @RestController
@@ -30,36 +34,20 @@ public class CustomerServiceController {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerServiceController.class);
 
-    // 商城客服 Graph 工作流实例，用于处理用户对话请求
-    // CompiledGraph 是 Spring AI Graph 的核心组件，包含已编译的节点和执行逻辑
     private final CompiledGraph mallCustomerServiceGraph;
+    private final ChatHistoryAdvisor chatHistoryAdvisor;
 
-    /**
-     * 构造函数 - 通过依赖注入获取已编译的 Graph 实例
-     *
-     * @param mallCustomerServiceGraph 由 Spring 容器自动注入的 CompiledGraph 对象
-     *                                 该对象在 MallGraphConfig 配置类中定义和初始化
-     *                                 包含了所有节点（意图识别、物流查询、订单状态等）和边的连接关系
-     */
-    public CustomerServiceController(CompiledGraph mallCustomerServiceGraph) {
-        // 将注入的 Graph 实例赋值给成员变量，供后续的对话接口使用
+    public CustomerServiceController(CompiledGraph mallCustomerServiceGraph,
+                                     ChatHistoryAdvisor chatHistoryAdvisor) {
         this.mallCustomerServiceGraph = mallCustomerServiceGraph;
+        this.chatHistoryAdvisor       = chatHistoryAdvisor;
     }
 
     // ------------------------------------------------------------------
-    // 请求/响应 DTO
+    // DTO
     // ------------------------------------------------------------------
 
-    public record ChatRequest(
-            /** 用户消息内容 */
-            String message,
-            /**
-             * 会话 ID（可选）。
-             * 传入相同 sessionId 可在同一会话中保持上下文（多轮对话）。
-             * 不传则每次生成新会话。
-             */
-            String sessionId
-    ) {}
+    public record ChatRequest(String message, String sessionId) {}
 
     public record ChatResponse(
             String sessionId,
@@ -74,64 +62,40 @@ public class CustomerServiceController {
     // 同步对话接口
     // ------------------------------------------------------------------
 
-    /**
-     * 同步对话 —— 等待 Graph 执行完毕后返回最终答案。
-     *
-     * <p>示例请求：
-     * <pre>
-     * POST /api/chat
-     * {"message": "帮我查一下 ORD002 的快递到哪了", "sessionId": "user_001"}
-     * </pre>
-     */
     @PostMapping
-    public ChatResponse chat(@RequestBody ChatRequest request) {
-        String sessionId = (request.sessionId() != null && !request.sessionId().isBlank())
-                ? request.sessionId()
-                : UUID.randomUUID().toString();
+    public ChatResponse chat(@RequestBody ChatRequest request, HttpServletRequest httpRequest) {
+        String userId    = resolveUserId(httpRequest);
+        String sessionId = resolveSessionId(request.sessionId());
 
-        log.info("[Controller] 收到对话请求: sessionId={}, message={}", sessionId, request.message());
+        log.info("[Controller] 收到对话: userId={}, sessionId={}, message={}", userId, sessionId, request.message());
+
+        // Advisor 前置：异步记录用户消息
+        chatHistoryAdvisor.recordUserMessage(userId, sessionId, request.message());
 
         try {
             Map<String, Object> initialState = buildInitialState(request.message());
-            // 构建 Graph 运行配置，设置线程 ID 用于会话状态管理
-            // threadId 确保同一会话的多轮对话可以共享上下文信息
-            RunnableConfig config = RunnableConfig.builder()
-                    .threadId(sessionId)  // 使用会话 ID 作为线程标识，实现会话隔离
-                    .build();
+            RunnableConfig config = RunnableConfig.builder().threadId(sessionId).build();
 
-            // 创建原子引用变量用于在流式处理中安全地收集和存储最终结果
-            // AtomicReference 保证在多线程环境下的线程安全性
-            AtomicReference<String> finalAnswer    = new AtomicReference<>("抱歉，我暂时无法处理您的请求，请稍后重试。");  // 默认失败提示
-            AtomicReference<String> sceneType      = new AtomicReference<>("unknown");  // 场景类型（物流查询/订单状态等）
-            AtomicReference<String> orderNo        = new AtomicReference<>("");  // 订单号
+            AtomicReference<String> finalAnswer = new AtomicReference<>("抱歉，我暂时无法处理您的请求，请稍后重试。");
+            AtomicReference<String> sceneType   = new AtomicReference<>("unknown");
+            AtomicReference<String> orderNo     = new AtomicReference<>("");
 
-            //两者最核心的区别在于：call（通常指 invoke()）是同步非流式调用，而 stream() 是异步流式调用。
-            // 执行商城客服 Graph 工作流，以流式方式获取每个节点的输出
-            // stream() 方法返回 Flux<NodeOutput>，允许逐节点观察执行进度
             mallCustomerServiceGraph.stream(initialState, config)
-                    // doOnNext: 对每个节点输出进行副作用处理（不改变数据流）
-                    .doOnNext(output -> {
-                        // 记录当前完成的节点名称，便于调试和追踪执行流程
-                        log.debug("[Controller] 节点完成: {}", output.node());
-                        // 从当前节点的输出状态中提取关键信息并更新到原子引用中
-                        // 这样可以在所有节点执行完毕后获取最终的完整状态
-                        extractStateValues(output, finalAnswer, sceneType, orderNo);
-                    })
-                    // blockLast(): 阻塞等待整个流执行完毕，返回最后一个元素（同步等待异步流完成）
-                    // 这使得同步接口能够等待 Graph 完全执行后再返回结果
+                    .doOnNext(output -> extractStateValues(output, finalAnswer, sceneType, orderNo))
                     .blockLast();
 
-            // 记录 Graph 执行完成的日志，包含场景类型和回答长度等关键信息
-            log.info("[Controller] Graph 执行完毕: scene={}, answer.length={}",
-                    sceneType.get(), finalAnswer.get().length());
+            // Advisor 后置：异步记录 AI 回复
+            chatHistoryAdvisor.recordAssistantMessage(userId, sessionId,
+                    finalAnswer.get(), sceneType.get(), orderNo.get());
 
-            return new ChatResponse(sessionId, finalAnswer.get(), sceneType.get(),
-                    orderNo.get(), true, null);
+            log.info("[Controller] Graph 完成: scene={}", sceneType.get());
+            return new ChatResponse(sessionId, finalAnswer.get(), sceneType.get(), orderNo.get(), true, null);
 
         } catch (Exception e) {
-            log.error("[Controller] Graph 执行异常: {}", e.getMessage(), e);
-            return new ChatResponse(sessionId, "系统繁忙，请稍后再试。如需帮助请拨打客服热线：400-123-4567",
-                    "error", "", false, e.getMessage());
+            log.error("[Controller] Graph 异常: {}", e.getMessage(), e);
+            String errMsg = "系统繁忙，请稍后再试。如需帮助请拨打客服热线：400-123-4567";
+            chatHistoryAdvisor.recordAssistantMessage(userId, sessionId, errMsg, "error", "");
+            return new ChatResponse(sessionId, errMsg, "error", "", false, e.getMessage());
         }
     }
 
@@ -139,53 +103,78 @@ public class CustomerServiceController {
     // 流式对话接口（SSE）
     // ------------------------------------------------------------------
 
-    /**
-     * 流式对话 —— 通过 SSE 实时推送每个 Graph 节点的执行进度。
-     *
-     * <p>客户端可订阅此接口获得实时反馈，适合展示"正在查询物流..."等中间状态。
-     *
-     * <p>示例请求：
-     * <pre>
-     * POST /api/chat/stream
-     * {"message": "ORD001 的订单状态怎么样"}
-     * </pre>
-     */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> chatStream(@RequestBody ChatRequest request) {
-        String sessionId = (request.sessionId() != null && !request.sessionId().isBlank())
-                ? request.sessionId()
-                : UUID.randomUUID().toString();
+    public Flux<String> chatStream(@RequestBody ChatRequest request, HttpServletRequest httpRequest) {
+        String userId    = resolveUserId(httpRequest);
+        String sessionId = resolveSessionId(request.sessionId());
 
-        log.info("[Controller-Stream] 收到流式对话请求: sessionId={}", sessionId);
+        log.info("[Controller-Stream] 收到流式对话: userId={}, sessionId={}", userId, sessionId);
+
+        // 前置：记录用户消息
+        chatHistoryAdvisor.recordUserMessage(userId, sessionId, request.message());
 
         Map<String, Object> initialState = buildInitialState(request.message());
-        RunnableConfig config = RunnableConfig.builder()
-                .threadId(sessionId)
-                .build();
+        RunnableConfig config = RunnableConfig.builder().threadId(sessionId).build();
+
+        AtomicReference<String> collectedAnswer = new AtomicReference<>("");
+        AtomicReference<String> collectedScene  = new AtomicReference<>("");
 
         return mallCustomerServiceGraph.stream(initialState, config)
-                .map(output -> formatNodeOutput(output))
+                .map(output -> {
+                    if (output.state() != null) {
+                        output.state().value("final_answer").ifPresent(v -> collectedAnswer.set(v.toString()));
+                        output.state().value("scene_type").ifPresent(v -> collectedScene.set(v.toString()));
+                    }
+                    return formatNodeOutput(output);
+                })
+                .doOnComplete(() ->
+                    chatHistoryAdvisor.recordAssistantMessage(
+                            userId, sessionId, collectedAnswer.get(), collectedScene.get(), ""))
                 .onErrorReturn("[ERROR] 处理出错，请稍后再试或拨打客服热线：400-123-4567");
     }
 
     // ------------------------------------------------------------------
-    // 演示接口（快速验证）
+    // 查询对话历史
     // ------------------------------------------------------------------
 
-    /**
-     * 演示接口 —— 使用预置 message 快速体验，无需传参。
-     *
-     * <p>示例：GET /api/chat/demo?message=查询ORD002物流
-     */
-    @GetMapping("/demo")
-    public ChatResponse demo(
-            @RequestParam(defaultValue = "帮我查一下订单 ORD002 的快递到哪了") String message) {
-        return chat(new ChatRequest(message, "demo-session-" + UUID.randomUUID().toString().substring(0, 8)));
+    @GetMapping("/history/{sessionId}")
+    public Object getHistory(@PathVariable String sessionId, HttpServletRequest httpRequest) {
+        String userId = resolveUserId(httpRequest);
+        return chatHistoryAdvisor.getHistory(userId, sessionId);
+    }
+
+    @GetMapping("/sessions")
+    public Object getSessions(HttpServletRequest httpRequest) {
+        String userId = resolveUserId(httpRequest);
+        return chatHistoryAdvisor.getSessionSummaries(userId);
     }
 
     // ------------------------------------------------------------------
-    // 内部工具方法
+    // 演示接口
     // ------------------------------------------------------------------
+
+    @GetMapping("/demo")
+    public ChatResponse demo(
+            @RequestParam(defaultValue = "帮我查一下订单 ORD002 的快递到哪了") String message,
+            HttpServletRequest httpRequest) {
+        return chat(new ChatRequest(message, "demo-session-" + UUID.randomUUID().toString().substring(0, 8)),
+                httpRequest);
+    }
+
+    // ------------------------------------------------------------------
+    // 内部工具
+    // ------------------------------------------------------------------
+
+    private String resolveUserId(HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return (userId != null && !userId.isBlank()) ? userId : "anonymous";
+    }
+
+    private String resolveSessionId(String sessionId) {
+        return (sessionId != null && !sessionId.isBlank())
+                ? sessionId
+                : UUID.randomUUID().toString();
+    }
 
     private Map<String, Object> buildInitialState(String userMessage) {
         Map<String, Object> state = new HashMap<>();
@@ -199,11 +188,8 @@ public class CustomerServiceController {
                                     AtomicReference<String> sceneType,
                                     AtomicReference<String> orderNo) {
         if (output == null || output.state() == null) return;
-
         output.state().value("final_answer").ifPresent(v -> {
-            if (v != null && !v.toString().isBlank()) {
-                finalAnswer.set(v.toString());
-            }
+            if (v != null && !v.toString().isBlank()) finalAnswer.set(v.toString());
         });
         output.state().value("scene_type").ifPresent(v -> sceneType.set(v.toString()));
         output.state().value("order_no").ifPresent(v -> orderNo.set(v.toString()));
@@ -211,26 +197,22 @@ public class CustomerServiceController {
 
     private String formatNodeOutput(NodeOutput output) {
         if (output == null) return "";
-        String nodeName = output.node();
-
-        // 根据节点名称返回进度描述
-        String progress = switch (nodeName) {
-            case "intent_parser"      -> "🔍 正在分析您的问题...";
-            case "logistics_query_node" -> "📦 正在查询物流信息...";
-            case "order_status_node"  -> "📋 正在查询订单状态...";
-            case "order_review_node"  -> "⭐ 正在提交评价...";
-            case "general_answer_node"-> "💬 正在生成回答...";
-            case "response_formatter" -> "✍️ 正在整理回复...";
-            default -> "⚙️ 处理中...";
+        String progress = switch (output.node()) {
+            case "intent_parser"       -> "data: 🔍 正在分析您的问题...\n\n";
+            case "logistics_query_node"-> "data: 📦 正在查询物流信息...\n\n";
+            case "order_status_node"   -> "data: 📋 正在查询订单状态...\n\n";
+            case "order_review_node"   -> "data: ⭐ 正在提交评价...\n\n";
+            case "general_answer_node" -> "data: 💬 正在生成回答...\n\n";
+            case "response_formatter"  -> "data: ✍️ 正在整理回复...\n\n";
+            default                    -> "data: ⚙️ 处理中...\n\n";
         };
 
-        // 若是最终节点，附上答案
         if (output.state() != null) {
             Object answer = output.state().value("final_answer").orElse(null);
             if (answer != null && !answer.toString().isBlank()) {
-                return "data: " + progress + "\n\ndata: [ANSWER]\n" + answer + "\n\n";
+                return progress + "data: [ANSWER]\n" + answer + "\n\n";
             }
         }
-        return "data: " + progress + "\n\n";
+        return progress;
     }
 }

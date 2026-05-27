@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mallcs.mapper.UserMapper">
+
+    <resultMap id="AppUserMap" type="com.example.mallcs.entity.AppUser">
+        <id     property="id"        column="id"/>
+        <result property="username"  column="username"/>
+        <result property="password"  column="password"/>
+        <result property="nickname"  column="nickname"/>
+        <result property="role"      column="role"/>
+        <result property="enabled"   column="enabled"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findByUsername" resultMap="AppUserMap">
+        SELECT id, username, password, nickname, role, enabled, created_at
+        FROM app_user
+        WHERE username = #{username}
+    </select>
+
+    <select id="existsByUsername" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM app_user
+        WHERE username = #{username}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO app_user(id, username, password, nickname, role, enabled, created_at)
+        VALUES(#{id}, #{username}, #{password}, #{nickname}, #{role}, #{enabled}, #{createdAt})
+    </insert>
+
+</mapper>

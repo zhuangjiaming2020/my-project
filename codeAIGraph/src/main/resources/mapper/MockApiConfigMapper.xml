@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mallcs.mapper.MockApiConfigMapper">
+
+    <resultMap id="MockApiConfigMap" type="com.example.mallcs.entity.MockApiConfigEntity">
+        <id     property="id"          column="id"/>
+        <result property="operation"   column="operation"/>
+        <result property="enabled"     column="enabled"/>
+        <result property="description" column="description"/>
+        <result property="url"         column="url"/>
+        <result property="method"      column="method"/>
+        <result property="headers"     column="headers"
+                typeHandler="com.example.mallcs.typehandler.JsonMapTypeHandler"/>
+        <result property="requestBody" column="request_body"/>
+        <result property="updatedAt"   column="updated_at"/>
+    </resultMap>
+
+    <select id="findByOperation" resultMap="MockApiConfigMap">
+        SELECT id, operation, enabled, description, url, method, headers, request_body, updated_at
+        FROM mock_api_config
+        WHERE operation = #{operation}
+    </select>
+
+    <select id="findAll" resultMap="MockApiConfigMap">
+        SELECT id, operation, enabled, description, url, method, headers, request_body, updated_at
+        FROM mock_api_config
+        ORDER BY id
+    </select>
+
+    <select id="existsByOperation" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM mock_api_config
+        WHERE operation = #{operation}
+    </select>
+
+    <!-- PostgreSQL upsert：存在则更新，不存在则插入 -->
+    <insert id="upsert">
+        INSERT INTO mock_api_config(operation, enabled, description, url, method, headers, request_body, updated_at)
+        VALUES(
+            #{operation},
+            #{enabled},
+            #{description},
+            #{url},
+            #{method},
+            #{headers, typeHandler=com.example.mallcs.typehandler.JsonMapTypeHandler},
+            #{requestBody},
+            NOW()
+        )
+        ON CONFLICT(operation) DO UPDATE SET
+            enabled     = EXCLUDED.enabled,
+            description = EXCLUDED.description,
+            url         = EXCLUDED.url,
+            method      = EXCLUDED.method,
+            headers     = EXCLUDED.headers,
+            request_body = EXCLUDED.request_body,
+            updated_at  = NOW()
+    </insert>
+
+    <delete id="deleteByOperation">
+        DELETE FROM mock_api_config WHERE operation = #{operation}
+    </delete>
+
+</mapper>

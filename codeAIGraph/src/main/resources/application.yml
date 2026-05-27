@@ -6,21 +6,57 @@ spring:
     name: mall-customer-service
 
   # ================================================================
+  # PostgreSQL 数据源配置
+  # ================================================================
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  # ================================================================
+  # SQL 初始化（建表 + 初始数据）
+  # ================================================================
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/schema.sql
+      data-locations: classpath:sql/data.sql
+
+  # ================================================================
   # DeepSeek 模型配置
-  # API Key 获取地址：https://platform.deepseek.com/
   # ================================================================
   ai:
     deepseek:
-      # 方式1：直接填写（本地测试用，不要提交到 Git）
-      # api-key: sk-your-deepseek-api-key-here
-      # 方式2：读取环境变量（推荐，生产使用）
       api-key: sk-06acd8502f7640e5b5781aa7185da91d
       base-url: https://api.deepseek.com
       chat:
         options:
-          model: deepseek-v4-flash       # 或 deepseek-reasoner（深度推理）
-          temperature: 0.3           # 降低随机性，保证客服回答稳定
+          model: deepseek-v4-flash
+          temperature: 0.3
           max-tokens: 1024
+
+# ================================================================
+# MyBatis 配置
+# ================================================================
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.mallcs.entity
+  type-handlers-package: com.example.mallcs.typehandler
+  configuration:
+    map-underscore-to-camel-case: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
+
+# ================================================================
+# JWT 配置
+# ================================================================
+jwt:
+  secret: mall-cs-jwt-secret-key-2024-must-be-at-least-32-characters-long
+  expiration: 86400000   # 24 小时（毫秒）
 
 # ================================================================
 # 日志配置
@@ -28,8 +64,9 @@ spring:
 logging:
   level:
     root: INFO
-    com.example.mallcs: DEBUG          # 业务代码 DEBUG 级别，查看 Graph 节点执行日志
-    com.alibaba.cloud.ai.graph: INFO   # Graph 框架日志
-    org.springframework.ai: INFO       # Spring AI 日志
+    com.example.mallcs: DEBUG
+    com.alibaba.cloud.ai.graph: INFO
+    org.springframework.ai: INFO
+    org.springframework.security: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
