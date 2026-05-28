@@ -120,12 +120,12 @@ public class CustomerServiceController {
         AtomicReference<String> collectedScene  = new AtomicReference<>("");
 
         return mallCustomerServiceGraph.stream(initialState, config)
-                .map(output -> {
+                .flatMap(output -> {
                     if (output.state() != null) {
                         output.state().value("final_answer").ifPresent(v -> collectedAnswer.set(v.toString()));
                         output.state().value("scene_type").ifPresent(v -> collectedScene.set(v.toString()));
                     }
-                    return formatNodeOutput(output);
+                    return buildSseEvents(output);
                 })
                 .doOnComplete(() ->
                     chatHistoryAdvisor.recordAssistantMessage(
@@ -195,24 +195,33 @@ public class CustomerServiceController {
         output.state().value("order_no").ifPresent(v -> orderNo.set(v.toString()));
     }
 
-    private String formatNodeOutput(NodeOutput output) {
-        if (output == null) return "";
-        String progress = switch (output.node()) {
-            case "intent_parser"       -> "data: 🔍 正在分析您的问题...\n\n";
-            case "logistics_query_node"-> "data: 📦 正在查询物流信息...\n\n";
-            case "order_status_node"   -> "data: 📋 正在查询订单状态...\n\n";
-            case "order_review_node"   -> "data: ⭐ 正在提交评价...\n\n";
-            case "general_answer_node" -> "data: 💬 正在生成回答...\n\n";
-            case "response_formatter"  -> "data: ✍️ 正在整理回复...\n\n";
-            default                    -> "data: ⚙️ 处理中...\n\n";
+    /**
+     * 将一个 Graph 节点输出转换为 1~2 个 SSE 事件字符串。
+     *
+     * <p>注意：不要手动添加 "data: " 前缀和 "\n\n" 结尾——Spring MVC 在序列化
+     * {@code Flux<String>} 为 text/event-stream 时会自动完成 SSE 封装。
+     * 手动添加会导致双重前缀（"data: data: ..."），前端解析失败。
+     */
+    private Flux<String> buildSseEvents(NodeOutput output) {
+        if (output == null) return Flux.empty();
+
+        String progressText = switch (output.node()) {
+            case "intent_parser"        -> "[PROGRESS] 🔍 正在分析您的问题...";
+            case "logistics_query_node" -> "[PROGRESS] 📦 正在查询物流信息...";
+            case "order_status_node"    -> "[PROGRESS] 📋 正在查询订单状态...";
+            case "order_review_node"    -> "[PROGRESS] ⭐ 正在提交评价...";
+            case "general_answer_node"  -> "[PROGRESS] 💬 正在生成回答...";
+            case "response_formatter"   -> "[PROGRESS] ✍️ 正在整理回复...";
+            default                     -> "[PROGRESS] ⚙️ 处理中...";
         };
 
         if (output.state() != null) {
             Object answer = output.state().value("final_answer").orElse(null);
             if (answer != null && !answer.toString().isBlank()) {
-                return progress + "data: [ANSWER]\n" + answer + "\n\n";
+                // 进度和答案分两个 SSE 事件发送，Spring 各自独立封装
+                return Flux.just(progressText, "[ANSWER]\n" + answer);
             }
         }
-        return progress;
+        return Flux.just(progressText);
     }
 }
