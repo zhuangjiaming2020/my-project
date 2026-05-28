@@ -214,19 +214,19 @@ async function sendMessage() {
 
 async function handleSyncSend(text) {
   isLoading.value = true
-  const botMsg = { role: 'assistant', content: '', isLoading: true, time: new Date() }
-  messages.value.push(botMsg)
+  messages.value.push({ role: 'assistant', content: '', isLoading: true, time: new Date() })
+  const idx = messages.value.length - 1
   await scrollToBottom()
 
   try {
     const { data } = await apiSendMessage(text, sessionId.value)
     sessionId.value = data.sessionId
     localStorage.setItem(SESSION_KEY, data.sessionId)
-    botMsg.content = data.success ? data.answer : (data.answer || data.errorMessage || '请求失败')
-    botMsg.isLoading = false
+    messages.value[idx].content = data.success ? data.answer : (data.answer || data.errorMessage || '请求失败')
+    messages.value[idx].isLoading = false
   } catch (e) {
-    botMsg.content = '网络请求失败，请检查后端服务是否已启动（端口 8080）。'
-    botMsg.isLoading = false
+    messages.value[idx].content = '网络请求失败，请检查后端服务是否已启动（端口 8080）。'
+    messages.value[idx].isLoading = false
   } finally {
     isLoading.value = false
     await scrollToBottom()
@@ -235,15 +235,15 @@ async function handleSyncSend(text) {
 
 async function handleStreamSend(text) {
   isLoading.value = true
-  const botMsg = { role: 'assistant', content: '', isLoading: true, progress: '', time: new Date() }
-  messages.value.push(botMsg)
+  messages.value.push({ role: 'assistant', content: '', isLoading: true, progress: '', time: new Date() })
+  const idx = messages.value.length - 1
   await scrollToBottom()
 
   try {
     const response = await sendMessageStream(text, sessionId.value)
     if (!response.ok) {
-      botMsg.content = `请求失败，状态码: ${response.status}`
-      botMsg.isLoading = false
+      messages.value[idx].content = `请求失败，状态码: ${response.status}`
+      messages.value[idx].isLoading = false
       return
     }
 
@@ -258,44 +258,49 @@ async function handleStreamSend(text) {
       if (done) break
 
       buffer += decoder.decode(value, { stream: true })
-
       const lines = buffer.split('\n')
       buffer = lines.pop() ?? ''
 
-      for (const line of lines) {
-        if (!line.trim()) continue
+      for (const rawLine of lines) {
+        // Spring SSE 每行格式: "data: <payload>" 或空行（事件分隔符）
+        // 统一剥去 "data: " 前缀后再处理
+        const line = rawLine.startsWith('data: ') ? rawLine.slice(6)
+                   : rawLine.startsWith('data:')  ? rawLine.slice(5)
+                   : rawLine
 
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-          if (data === '[ANSWER]') {
-            inAnswer = true
-            answerLines = []
-          } else if (inAnswer) {
-            answerLines.push(data)
-            botMsg.content = answerLines.join('\n')
-            botMsg.progress = ''
-            botMsg.isLoading = false
-          } else {
-            botMsg.progress = data
-          }
-        } else if (inAnswer && line.trim()) {
+        if (!line.trim()) {
+          // 空行：answer 段内保留段落空行，段外是 SSE 事件分隔符，跳过
+          if (inAnswer) answerLines.push('')
+          continue
+        }
+
+        if (line === '[ANSWER]') {
+          inAnswer = true
+          answerLines = []
+        } else if (line.startsWith('[PROGRESS] ')) {
+          messages.value[idx].progress = line.slice(11)
+        } else if (line.startsWith('[ERROR]')) {
+          messages.value[idx].content = line
+          messages.value[idx].isLoading = false
+        } else if (inAnswer) {
           answerLines.push(line)
-          botMsg.content = answerLines.join('\n')
-          botMsg.isLoading = false
+          messages.value[idx].content = answerLines.join('\n').trimEnd()
+          messages.value[idx].progress = ''
+          messages.value[idx].isLoading = false
         }
       }
       await scrollToBottom()
     }
 
-    // 确保最终状态正确
-    if (!botMsg.content && botMsg.progress) {
-      botMsg.content = botMsg.progress
+    // 流结束兜底
+    if (!messages.value[idx].content && messages.value[idx].progress) {
+      messages.value[idx].content = messages.value[idx].progress
     }
-    botMsg.isLoading = false
+    messages.value[idx].isLoading = false
 
   } catch (e) {
-    botMsg.content = '流式请求失败，请检查后端服务。'
-    botMsg.isLoading = false
+    messages.value[idx].content = '流式请求失败，请检查后端服务。'
+    messages.value[idx].isLoading = false
   } finally {
     isLoading.value = false
     await scrollToBottom()
