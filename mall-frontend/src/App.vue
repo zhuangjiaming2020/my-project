@@ -50,15 +50,18 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { getUser, logout } from './utils/auth.js'
 
-const route = useRoute()
+const route  = useRoute()
 const router = useRouter()
 
-const user = computed(() => getUser())
+// localStorage 不具备 Vue 响应性，用 ref 包装并在路由变化时同步
+const user = ref(getUser())
+watch(() => route.path, () => { user.value = getUser() })
+
 const userInitial = computed(() => {
   const u = user.value
   if (!u) return '?'

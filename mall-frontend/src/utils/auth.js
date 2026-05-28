@@ -14,4 +14,5 @@ export function isLoggedIn() { return !!getToken() }
 export function logout() {
   removeToken()
   removeUser()
+  localStorage.removeItem('mall_chat_session_id')  // 清除会话，避免不同账号共用
 }

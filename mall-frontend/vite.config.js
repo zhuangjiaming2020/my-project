@@ -10,6 +10,7 @@ export default defineConfig({
     }
   },
   server: {
+    host: '0.0.0.0',   // 监听所有网卡，局域网内可访问
     port: 3000,
     proxy: {
       '/api': {
