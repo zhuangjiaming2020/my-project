@@ -5,6 +5,11 @@ spring:
   application:
     name: mall-customer-service
 
+  # LocalDateTime 序列化为 ISO 字符串（而非数组），前端可直接 new Date(str)
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
   # ================================================================
   # PostgreSQL 数据源配置
   # ================================================================

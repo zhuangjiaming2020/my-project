@@ -28,17 +28,27 @@
         ORDER BY created_at ASC
     </select>
 
-    <!-- 查询每个会话的最后一条消息（用于会话列表摘要） -->
+    <!--
+      会话列表摘要：
+        - content     = 每个会话第一条 USER 消息（作为会话标题）
+        - created_at  = 该会话的最后活跃时间（按此倒序排列）
+    -->
     <select id="findLatestMessagePerSession" resultMap="ChatHistoryMap">
-        SELECT h.id, h.user_id, h.session_id, h.role, h.content, h.scene_type, h.order_no, h.created_at
+        SELECT
+            h.id, h.user_id, h.session_id, h.role, h.content,
+            h.scene_type, h.order_no,
+            last_msg.last_active_at AS created_at
         FROM chat_history h
         INNER JOIN (
-            SELECT session_id, MAX(id) AS max_id
+            SELECT
+                session_id,
+                MIN(CASE WHEN role = 'USER' THEN id END) AS first_user_msg_id,
+                MAX(created_at) AS last_active_at
             FROM chat_history
             WHERE user_id = #{userId}
             GROUP BY session_id
-        ) latest ON h.id = latest.max_id
-        ORDER BY h.created_at DESC
+        ) last_msg ON h.id = last_msg.first_user_msg_id
+        ORDER BY last_msg.last_active_at DESC
     </select>
 
 </mapper>
