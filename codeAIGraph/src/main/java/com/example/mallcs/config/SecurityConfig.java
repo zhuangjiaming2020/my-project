@@ -78,6 +78,10 @@ public class SecurityConfig {
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);
+        // 暴露链路追踪头，前端 JS 可通过 response.headers.get('X-B3-TraceId') 读取
+        cfg.setExposedHeaders(List.of(
+                "X-B3-TraceId", "X-Trace-Id", "X-B3-SpanId", "X-B3-Sampled"
+        ));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", cfg);

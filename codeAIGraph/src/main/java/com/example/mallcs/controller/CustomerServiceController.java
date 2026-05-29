@@ -4,9 +4,12 @@ import com.alibaba.cloud.ai.graph.CompiledGraph;
 import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.example.mallcs.service.ChatHistoryAdvisor;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -36,11 +39,14 @@ public class CustomerServiceController {
 
     private final CompiledGraph mallCustomerServiceGraph;
     private final ChatHistoryAdvisor chatHistoryAdvisor;
+    private final Tracer tracer;
 
     public CustomerServiceController(CompiledGraph mallCustomerServiceGraph,
-                                     ChatHistoryAdvisor chatHistoryAdvisor) {
+                                     ChatHistoryAdvisor chatHistoryAdvisor,
+                                     Tracer tracer) {
         this.mallCustomerServiceGraph = mallCustomerServiceGraph;
         this.chatHistoryAdvisor       = chatHistoryAdvisor;
+        this.tracer                   = tracer;
     }
 
     // ------------------------------------------------------------------
@@ -55,7 +61,8 @@ public class CustomerServiceController {
             String sceneType,
             String orderNo,
             boolean success,
-            String errorMessage
+            String errorMessage,
+            String traceId        // 链路追踪 ID，与响应头 X-B3-TraceId 一致
     ) {}
 
     // ------------------------------------------------------------------
@@ -89,13 +96,14 @@ public class CustomerServiceController {
                     finalAnswer.get(), sceneType.get(), orderNo.get());
 
             log.info("[Controller] Graph 完成: scene={}", sceneType.get());
-            return new ChatResponse(sessionId, finalAnswer.get(), sceneType.get(), orderNo.get(), true, null);
+            return new ChatResponse(sessionId, finalAnswer.get(), sceneType.get(),
+                    orderNo.get(), true, null, resolveTraceId());
 
         } catch (Exception e) {
             log.error("[Controller] Graph 异常: {}", e.getMessage(), e);
             String errMsg = "系统繁忙，请稍后再试。如需帮助请拨打客服热线：400-123-4567";
             chatHistoryAdvisor.recordAssistantMessage(userId, sessionId, errMsg, "error", "");
-            return new ChatResponse(sessionId, errMsg, "error", "", false, e.getMessage());
+            return new ChatResponse(sessionId, errMsg, "error", "", false, e.getMessage(), resolveTraceId());
         }
     }
 
@@ -181,6 +189,22 @@ public class CustomerServiceController {
         state.put("user_input", userMessage);
         state.put("messages", new ArrayList<String>());
         return state;
+    }
+
+    /**
+     * 获取当前请求的 TraceId。
+     *
+     * <p>优先从 Micrometer {@link Tracer} 当前活跃 Span 读取；
+     * 降级到 MDC（Micrometer Tracing 自动写入）；
+     * 最终兜底返回空字符串，不影响业务逻辑。
+     */
+    private String resolveTraceId() {
+        Span span = tracer.currentSpan();
+        if (span != null) {
+            return span.context().traceId();
+        }
+        String mdcTrace = MDC.get("traceId");
+        return mdcTrace != null ? mdcTrace : "";
     }
 
     private void extractStateValues(NodeOutput output,

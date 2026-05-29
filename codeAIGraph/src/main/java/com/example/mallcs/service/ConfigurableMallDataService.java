@@ -38,11 +38,16 @@ public class ConfigurableMallDataService implements MallDataService {
     private final MockApiConfigService configService;
     private final RestTemplate restTemplate;
 
+    /**
+     * 注入由 {@link com.example.mallcs.config.TracingRestTemplateConfig} 配置的
+     * RestTemplate Bean，该 Bean 携带 B3 拦截器，调用外部 API 时自动传播链路追踪头。
+     */
     public ConfigurableMallDataService(MockMallDataService mockService,
-                                       MockApiConfigService configService) {
-        this.mockService = mockService;
+                                       MockApiConfigService configService,
+                                       RestTemplate restTemplate) {
+        this.mockService   = mockService;
         this.configService = configService;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate  = restTemplate;
     }
 
     @Override

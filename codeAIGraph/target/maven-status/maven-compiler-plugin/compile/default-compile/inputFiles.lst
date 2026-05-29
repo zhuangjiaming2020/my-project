@@ -1,5 +1,6 @@
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\MallGraphConfig.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\SecurityConfig.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\config\TracingRestTemplateConfig.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\AuthController.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\CustomerServiceController.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\controller\MockConfigController.java
@@ -11,6 +12,7 @@ E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\domain\
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\entity\AppUser.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\entity\ChatHistoryEntity.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\entity\MockApiConfigEntity.java
+E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\filter\TraceIdResponseFilter.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\MallStateFactory.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\GeneralAnswerNode.java
 E:\zjm\AI\codeAI\my-project\codeAIGraph\src\main\java\com\example\mallcs\graph\nodes\IntentParserNode.java

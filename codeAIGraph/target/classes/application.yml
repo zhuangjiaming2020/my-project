@@ -64,6 +64,18 @@ token:
   expiration: 86400000   # 24 小时（毫秒）
 
 # ================================================================
+# Micrometer Tracing（B3 链路追踪，替代 Spring Cloud Sleuth）
+# ================================================================
+management:
+  tracing:
+    sampling:
+      probability: 1.0          # 全量采样（生产可调低，如 0.1）
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+# ================================================================
 # 日志配置
 # ================================================================
 logging:
@@ -74,4 +86,5 @@ logging:
     org.springframework.ai: INFO
     org.springframework.security: INFO
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    # %X{traceId} / %X{spanId} 由 Micrometer Tracing 自动写入 MDC
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [trace=%X{traceId:-N/A},span=%X{spanId:-N/A}] %logger{36} - %msg%n"
