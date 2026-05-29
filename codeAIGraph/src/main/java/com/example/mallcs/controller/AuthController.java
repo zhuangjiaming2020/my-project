@@ -1,7 +1,7 @@
 package com.example.mallcs.controller;
 
 import com.example.mallcs.entity.AppUser;
-import com.example.mallcs.security.JwtUtil;
+import com.example.mallcs.security.AesTokenUtil;
 import com.example.mallcs.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import java.util.Map;
  * 认证接口。
  *
  * <ul>
- *   <li>POST /api/auth/login    - 用户登录，返回 JWT</li>
+ *   <li>POST /api/auth/login    - 用户登录，返回 AES Token</li>
  *   <li>POST /api/auth/register - 注册新用户</li>
  *   <li>GET  /api/auth/me       - 获取当前登录用户信息</li>
  * </ul>
@@ -27,14 +27,14 @@ public class AuthController {
 
     private final AuthenticationManager authManager;
     private final UserService userService;
-    private final JwtUtil jwtUtil;
+    private final AesTokenUtil tokenUtil;
 
     public AuthController(AuthenticationManager authManager,
                           UserService userService,
-                          JwtUtil jwtUtil) {
+                          AesTokenUtil tokenUtil) {
         this.authManager = authManager;
         this.userService = userService;
-        this.jwtUtil     = jwtUtil;
+        this.tokenUtil   = tokenUtil;
     }
 
     // ------------------------------------------------------------------
@@ -54,7 +54,7 @@ public class AuthController {
         }
 
         AppUser user = (AppUser) userService.loadUserByUsername(req.username());
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        String token = tokenUtil.generateToken(String.valueOf(user.getId()), user.getUsername(), user.getRole());
 
         return ResponseEntity.ok(new LoginResponse(
                 token,
@@ -73,7 +73,7 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
         try {
             AppUser user = userService.register(req.username(), req.password(), req.nickname(), "USER");
-            String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+            String token = tokenUtil.generateToken(String.valueOf(user.getId()), user.getUsername(), user.getRole());
             return ResponseEntity.ok(new LoginResponse(
                     token, user.getId(), user.getUsername(), user.getNickname(), user.getRole()
             ));

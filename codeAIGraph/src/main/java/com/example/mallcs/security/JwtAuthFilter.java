@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * JWT 认证过滤器 —— 解析请求头中的 Bearer Token，设置 SecurityContext。
+ * Token 认证过滤器 —— 解析请求头中的 Bearer Token（AES 加密），设置 SecurityContext。
  *
  * <p>同时将 userId 存入 request attribute，供 Controller 直接使用。
  */
@@ -26,10 +26,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
 
-    private final JwtUtil jwtUtil;
+    private final AesTokenUtil tokenUtil;
 
-    public JwtAuthFilter(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
+    public JwtAuthFilter(AesTokenUtil tokenUtil) {
+        this.tokenUtil = tokenUtil;
     }
 
     @Override
@@ -38,13 +38,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
         String token = extractToken(request);
 
-        if (StringUtils.hasText(token) && jwtUtil.isValid(token)) {
+        if (StringUtils.hasText(token) && tokenUtil.isValid(token)) {
             try {
-                String userId   = jwtUtil.getUserId(token);
-                String username = jwtUtil.getUsername(token);
-                String role     = jwtUtil.getRole(token);
+                String userId   = tokenUtil.getUserId(token);
+                String username = tokenUtil.getUsername(token);
+                String role     = tokenUtil.getRole(token);
 
-                // 存入 request attribute，Controller 中可直接取
                 request.setAttribute("userId",   userId);
                 request.setAttribute("username", username);
 
@@ -56,7 +55,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
-                log.warn("[JWT] Token 解析失败: {}", e.getMessage());
+                log.warn("[Token] 解析失败: {}", e.getMessage());
             }
         }
 

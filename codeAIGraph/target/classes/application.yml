@@ -57,10 +57,10 @@ mybatis:
     default-statement-timeout: 30
 
 # ================================================================
-# JWT 配置
+# Token 配置（自研 AES-256/CBC 加密）
 # ================================================================
-jwt:
-  secret: mall-cs-jwt-secret-key-2024-must-be-at-least-32-characters-long
+token:
+  secret: mall-cs-aes-secret-key-2024-must-be-at-least-32-characters-long
   expiration: 86400000   # 24 小时（毫秒）
 
 # ================================================================
