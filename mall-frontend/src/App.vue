@@ -1,44 +1,40 @@
 <template>
   <div class="app-container">
     <!-- 登录页不显示 header -->
-    <template v-if="route.path !== '/login'">
+    <template v-if="$route.path !== '/login'">
       <header class="app-header">
         <div class="header-brand">
-          <el-icon size="22" color="#fff"><ChatDotRound /></el-icon>
+          <i class="el-icon-chat-dot-round" style="font-size:22px;color:#fff;"></i>
           <span class="brand-title">智能运维客服系统</span>
         </div>
         <nav class="header-nav">
-          <router-link to="/" class="nav-link" :class="{ active: route.path === '/' }">
-            <el-icon><ChatLineRound /></el-icon>
+          <span class="nav-link" :class="{ active: $route.path === '/' }" @click="goto('/')">
+            <i class="el-icon-chat-line-round"></i>
             <span>用户客服</span>
-          </router-link>
-          <router-link to="/admin" class="nav-link" :class="{ active: route.path === '/admin' }">
-            <el-icon><Setting /></el-icon>
+          </span>
+          <span class="nav-link" :class="{ active: $route.path === '/admin' }" @click="goto('/admin')">
+            <i class="el-icon-setting"></i>
             <span>接口配置</span>
-          </router-link>
+          </span>
         </nav>
         <div class="header-user">
           <el-dropdown v-if="user" trigger="click" @command="handleCommand">
             <span class="user-info">
-              <el-avatar :size="28" class="user-avatar">
-                {{ userInitial }}
-              </el-avatar>
+              <el-avatar :size="28" class="user-avatar">{{ userInitial }}</el-avatar>
               <span class="user-name">{{ user.nickname || user.username }}</span>
-              <el-icon size="12"><ArrowDown /></el-icon>
+              <i class="el-icon-arrow-down" style="font-size:12px;"></i>
             </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item disabled>
-                  <el-icon><User /></el-icon>
-                  {{ user.username }}
-                  <el-tag v-if="user.role === 'ADMIN'" size="small" type="warning" style="margin-left:6px">管理员</el-tag>
-                </el-dropdown-item>
-                <el-dropdown-item divided command="logout">
-                  <el-icon><SwitchButton /></el-icon>
-                  退出登录
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item :disabled="true">
+                <i class="el-icon-user"></i>
+                {{ user.username }}
+                <el-tag v-if="user.role === 'ADMIN'" size="mini" type="warning" style="margin-left:6px">管理员</el-tag>
+              </el-dropdown-item>
+              <el-dropdown-item divided command="logout">
+                <i class="el-icon-switch-button"></i>
+                退出登录
+              </el-dropdown-item>
+            </el-dropdown-menu>
           </el-dropdown>
         </div>
       </header>
@@ -49,37 +45,49 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
+<script>
 import { getUser, logout } from './utils/auth.js'
 
-const route  = useRoute()
-const router = useRouter()
-
-// localStorage 不具备 Vue 响应性，用 ref 包装并在路由变化时同步
-const user = ref(getUser())
-watch(() => route.path, () => { user.value = getUser() })
-
-const userInitial = computed(() => {
-  const u = user.value
-  if (!u) return '?'
-  const name = u.nickname || u.username
-  return name.charAt(0).toUpperCase()
-})
-
-function handleCommand(cmd) {
-  if (cmd === 'logout') {
-    ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      confirmButtonText: '退出',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(() => {
-      logout()
-      ElMessage.success('已退出登录')
-      router.push('/login')
-    }).catch(() => {})
+export default {
+  name: 'App',
+  data() {
+    return {
+      user: getUser()
+    }
+  },
+  computed: {
+    userInitial() {
+      const u = this.user
+      if (!u) return '?'
+      const name = u.nickname || u.username
+      return name.charAt(0).toUpperCase()
+    }
+  },
+  watch: {
+    '$route.path'() {
+      // 路由跳转后同步用户信息（localStorage 无响应性，监听路由变化手动刷新）
+      this.user = getUser()
+    }
+  },
+  methods: {
+    goto(path) {
+      if (this.$route.path !== path) {
+        this.$router.push(path).catch(() => {})
+      }
+    },
+    handleCommand(cmd) {
+      if (cmd === 'logout') {
+        this.$confirm('确定要退出登录吗？', '提示', {
+          confirmButtonText: '退出',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          logout()
+          this.$message.success('已退出登录')
+          this.$router.push('/login').catch(() => {})
+        }).catch(() => {})
+      }
+    }
   }
 }
 </script>
@@ -145,6 +153,8 @@ body {
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
+  user-select: none;
   transition: all 0.2s;
 }
 
@@ -173,6 +183,7 @@ body {
   padding: 4px 8px;
   border-radius: 8px;
   transition: background 0.2s;
+  outline: none;
 }
 
 .user-info:hover {
@@ -180,8 +191,8 @@ body {
 }
 
 .user-avatar {
-  background: rgba(255, 255, 255, 0.3);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: #fff !important;
   font-size: 13px;
   font-weight: 600;
   flex-shrink: 0;

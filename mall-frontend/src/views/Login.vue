@@ -2,28 +2,28 @@
   <div class="login-page">
     <div class="login-card">
       <div class="login-logo">
-        <el-icon size="40" color="#1677ff"><ChatDotRound /></el-icon>
+        <i class="el-icon-chat-dot-round" style="font-size:40px;color:#1677ff;"></i>
         <h1 class="login-title">智能运维客服系统</h1>
         <p class="login-subtitle">请登录以继续</p>
       </div>
 
       <el-tabs v-model="activeTab" class="login-tabs">
+        <!-- 登录 Tab -->
         <el-tab-pane label="登录" name="login">
           <el-form
             ref="loginFormRef"
             :model="loginForm"
             :rules="loginRules"
             label-position="top"
-            size="large"
-            @submit.prevent="handleLogin"
+            size="medium"
+            @submit.native.prevent="handleLogin"
           >
             <el-form-item label="用户名" prop="username">
               <el-input
                 v-model="loginForm.username"
                 placeholder="请输入用户名"
-                prefix-icon="User"
+                prefix-icon="el-icon-user"
                 clearable
-                autofocus
               />
             </el-form-item>
             <el-form-item label="密码" prop="password">
@@ -31,9 +31,9 @@
                 v-model="loginForm.password"
                 type="password"
                 placeholder="请输入密码"
-                prefix-icon="Lock"
+                prefix-icon="el-icon-lock"
                 show-password
-                @keyup.enter="handleLogin"
+                @keyup.enter.native="handleLogin"
               />
             </el-form-item>
             <el-button
@@ -47,20 +47,21 @@
           </el-form>
         </el-tab-pane>
 
+        <!-- 注册 Tab -->
         <el-tab-pane label="注册" name="register">
           <el-form
             ref="registerFormRef"
             :model="registerForm"
             :rules="registerRules"
             label-position="top"
-            size="large"
-            @submit.prevent="handleRegister"
+            size="medium"
+            @submit.native.prevent="handleRegister"
           >
             <el-form-item label="用户名" prop="username">
               <el-input
                 v-model="registerForm.username"
                 placeholder="请输入用户名（3-20个字符）"
-                prefix-icon="User"
+                prefix-icon="el-icon-user"
                 clearable
               />
             </el-form-item>
@@ -68,7 +69,7 @@
               <el-input
                 v-model="registerForm.nickname"
                 placeholder="请输入昵称（可选）"
-                prefix-icon="Avatar"
+                prefix-icon="el-icon-edit"
                 clearable
               />
             </el-form-item>
@@ -77,7 +78,7 @@
                 v-model="registerForm.password"
                 type="password"
                 placeholder="请输入密码（至少6位）"
-                prefix-icon="Lock"
+                prefix-icon="el-icon-lock"
                 show-password
               />
             </el-form-item>
@@ -86,9 +87,9 @@
                 v-model="registerForm.confirmPassword"
                 type="password"
                 placeholder="请再次输入密码"
-                prefix-icon="Lock"
+                prefix-icon="el-icon-lock"
                 show-password
-                @keyup.enter="handleRegister"
+                @keyup.enter.native="handleRegister"
               />
             </el-form-item>
             <el-button
@@ -104,104 +105,108 @@
       </el-tabs>
 
       <div class="login-hint">
-        <el-text size="small" type="info">
-          默认账号：admin / admin123，user1 / user123
-        </el-text>
+        <span style="font-size:12px;color:#909399;">默认账号：admin / admin123，user1 / user123</span>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+<script>
 import { login, register } from '../api/index.js'
 import { setToken, setUser } from '../utils/auth.js'
 
-const router = useRouter()
-const activeTab = ref('login')
-const loading = ref(false)
-
-// ---------- 登录 ----------
-const loginFormRef = ref()
-const loginForm = reactive({ username: '', password: '' })
-const loginRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-}
-
-async function handleLogin() {
-  const valid = await loginFormRef.value?.validate().catch(() => false)
-  if (!valid) return
-  loading.value = true
-  try {
-    const res = await login(loginForm.username, loginForm.password)
-    setToken(res.data.token)
-    const user = {
-      id:       res.data.userId,
-      username: res.data.username,
-      nickname: res.data.nickname,
-      role:     res.data.role
-    }
-    setUser(user)
-    ElMessage.success(`欢迎回来，${user.nickname || user.username}！`)
-    const redirect = router.currentRoute.value.query.redirect || '/'
-    router.push(redirect)
-  } catch (err) {
-    const msg = err.response?.data?.error || err.response?.data?.message || '登录失败，请检查用户名或密码'
-    ElMessage.error(msg)
-  } finally {
-    loading.value = false
-  }
-}
-
-// ---------- 注册 ----------
-const registerFormRef = ref()
-const registerForm = reactive({ username: '', nickname: '', password: '', confirmPassword: '' })
-const registerRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度为 3-20 个字符', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (value !== registerForm.password) callback(new Error('两次密码不一致'))
-        else callback()
+export default {
+  name: 'Login',
+  data() {
+    return {
+      activeTab: 'login',
+      loading: false,
+      loginForm: { username: '', password: '' },
+      loginRules: {
+        username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
       },
-      trigger: 'blur'
+      registerForm: { username: '', nickname: '', password: '', confirmPassword: '' }
     }
-  ]
-}
+  },
+  computed: {
+    registerRules() {
+      return {
+        username: [
+          { required: true, message: '请输入用户名', trigger: 'blur' },
+          { min: 3, max: 20, message: '用户名长度为 3-20 个字符', trigger: 'blur' }
+        ],
+        password: [
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { min: 6, message: '密码至少 6 位', trigger: 'blur' }
+        ],
+        confirmPassword: [
+          { required: true, message: '请确认密码', trigger: 'blur' },
+          {
+            validator: (rule, value, callback) => {
+              if (value !== this.registerForm.password) callback(new Error('两次密码不一致'))
+              else callback()
+            },
+            trigger: 'blur'
+          }
+        ]
+      }
+    }
+  },
+  methods: {
+    async handleLogin() {
+      const valid = await this.$refs.loginFormRef.validate().catch(() => false)
+      if (!valid) return
+      this.loading = true
+      try {
+        const res = await login(this.loginForm.username, this.loginForm.password)
+        setToken(res.data.token)
+        const user = {
+          id:       res.data.userId,
+          username: res.data.username,
+          nickname: res.data.nickname,
+          role:     res.data.role
+        }
+        setUser(user)
+        this.$message.success(`欢迎回来，${user.nickname || user.username}！`)
+        const redirect = this.$route.query.redirect || '/'
+        this.$router.push(redirect)
+      } catch (err) {
+        const msg = err.response?.data?.error || err.response?.data?.message || '登录失败，请检查用户名或密码'
+        this.$message.error(msg)
+      } finally {
+        this.loading = false
+      }
+    },
 
-async function handleRegister() {
-  const valid = await registerFormRef.value?.validate().catch(() => false)
-  if (!valid) return
-  loading.value = true
-  try {
-    const res = await register(registerForm.username, registerForm.password, registerForm.nickname)
-    setToken(res.data.token)
-    const user = {
-      id:       res.data.userId,
-      username: res.data.username,
-      nickname: res.data.nickname,
-      role:     res.data.role
+    async handleRegister() {
+      const valid = await this.$refs.registerFormRef.validate().catch(() => false)
+      if (!valid) return
+      this.loading = true
+      try {
+        const res = await register(
+          this.registerForm.username,
+          this.registerForm.password,
+          this.registerForm.nickname
+        )
+        setToken(res.data.token)
+        const user = {
+          id:       res.data.userId,
+          username: res.data.username,
+          nickname: res.data.nickname,
+          role:     res.data.role
+        }
+        setUser(user)
+        this.$message.success('注册成功，已自动登录！')
+        const redirect = this.$route.query.redirect || '/'
+        this.$router.push(redirect)
+      } catch (err) {
+        const msg = err.response?.data?.error || err.response?.data?.message || '注册失败'
+        this.$message.error(msg)
+      } finally {
+        this.loading = false
+      }
     }
-    setUser(user)
-    ElMessage.success('注册成功，已自动登录！')
-    const redirect = router.currentRoute.value.query.redirect || '/'
-    router.push(redirect)
-  } catch (err) {
-    const msg = err.response?.data?.error || err.response?.data?.message || '注册失败'
-    ElMessage.error(msg)
-  } finally {
-    loading.value = false
   }
 }
 </script>

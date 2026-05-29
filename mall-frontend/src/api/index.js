@@ -21,7 +21,9 @@ http.interceptors.response.use(
   err => {
     if (err.response?.status === 401) {
       logout()
-      router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
+      // Vue Router v3: currentRoute is the route object directly (no .value)
+      const redirect = router.currentRoute ? router.currentRoute.fullPath : '/'
+      router.push({ path: '/login', query: { redirect } }).catch(() => {})
     }
     return Promise.reject(err)
   }

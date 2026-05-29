@@ -1,18 +1,15 @@
-import { createApp } from 'vue'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import Vue from 'vue'
+import ElementUI from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css'
+import locale from 'element-ui/lib/locale/lang/zh-CN'
 import App from './App.vue'
 import router from './router'
 
-const app = createApp(App)
+Vue.use(ElementUI, { locale })
 
-// 注册所有 Element Plus 图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
+Vue.config.productionTip = false
 
-app.use(ElementPlus, { locale: zhCn })
-app.use(router)
-app.mount('#app')
+new Vue({
+  router,
+  render: h => h(App)
+}).$mount('#app')

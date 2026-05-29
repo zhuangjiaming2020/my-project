@@ -1,9 +1,9 @@
 <template>
   <div class="admin-page">
-    <!-- 左侧：操作列表（类似 Postman Collection） -->
+    <!-- ── 左侧操作列表 ── -->
     <aside class="admin-sidebar">
       <div class="sidebar-title">
-        <el-icon><Files /></el-icon>
+        <i class="el-icon-files"></i>
         <span>接口配置</span>
       </div>
       <div
@@ -14,37 +14,37 @@
         @click="selectOperation(op.key)"
       >
         <div class="op-item-left">
-          <span class="method-tag" :class="getMethodClass(configs[op.key]?.method || 'GET')">
-            {{ configs[op.key]?.method || 'GET' }}
+          <span class="method-tag" :class="getMethodClass(configs[op.key] && configs[op.key].method || 'GET')">
+            {{ configs[op.key] && configs[op.key].method || 'GET' }}
           </span>
           <div class="op-item-info">
             <div class="op-item-name">{{ op.label }}</div>
-            <div class="op-item-url">{{ configs[op.key]?.url || '未配置 URL' }}</div>
+            <div class="op-item-url">{{ configs[op.key] && configs[op.key].url || '未配置 URL' }}</div>
           </div>
         </div>
         <el-tag
-          :type="configs[op.key]?.enabled ? 'success' : 'info'"
-          size="small"
+          :type="configs[op.key] && configs[op.key].enabled ? 'success' : 'info'"
+          size="mini"
           effect="light"
         >
-          {{ configs[op.key]?.enabled ? '启用' : '关闭' }}
+          {{ configs[op.key] && configs[op.key].enabled ? '启用' : '关闭' }}
         </el-tag>
       </div>
 
       <div class="sidebar-info">
-        <el-icon><InfoFilled /></el-icon>
+        <i class="el-icon-info"></i>
         <span>配置后端接口，客服机器人将调用真实 API 替代 Mock 数据</span>
       </div>
     </aside>
 
-    <!-- 右侧：配置面板（类似 Postman 主面板） -->
+    <!-- ── 右侧配置面板 ── -->
     <div class="admin-main" v-if="selectedOp && currentConfig">
       <!-- URL 栏 -->
       <div class="url-bar">
         <el-select v-model="currentConfig.method" class="method-select" @change="dirty = true">
-          <el-option label="GET" value="GET" />
-          <el-option label="POST" value="POST" />
-          <el-option label="PUT" value="PUT" />
+          <el-option label="GET"    value="GET" />
+          <el-option label="POST"   value="POST" />
+          <el-option label="PUT"    value="PUT" />
           <el-option label="DELETE" value="DELETE" />
         </el-select>
         <el-input
@@ -53,9 +53,7 @@
           class="url-input"
           @input="dirty = true"
         >
-          <template #prefix>
-            <el-icon color="#999"><Link /></el-icon>
-          </template>
+          <i slot="prefix" class="el-icon-link" style="color:#999;"></i>
         </el-input>
         <el-button
           type="primary"
@@ -64,7 +62,7 @@
           @click="runTest"
           class="send-btn"
         >
-          <el-icon><CaretRight /></el-icon>
+          <i class="el-icon-caret-right"></i>
           Send
         </el-button>
       </div>
@@ -90,26 +88,20 @@
                     />
                     <el-alert
                       v-if="currentConfig.enabled"
+                      title="已启用外部 API —— 客服机器人将调用上方 URL 获取真实数据"
                       type="warning"
                       :closable="false"
                       show-icon
                       class="enable-alert"
-                    >
-                      <template #title>
-                        已启用外部 API —— 客服机器人将调用上方 URL 获取真实数据
-                      </template>
-                    </el-alert>
+                    />
                     <el-alert
                       v-else
+                      title="当前使用内置 Mock 数据，配置并保存后可切换到外部 API"
                       type="info"
                       :closable="false"
                       show-icon
                       class="enable-alert"
-                    >
-                      <template #title>
-                        当前使用内置 Mock 数据，配置并保存后可切换到外部 API
-                      </template>
-                    </el-alert>
+                    />
                   </div>
                 </el-form-item>
               </el-form>
@@ -118,11 +110,11 @@
                 <span class="divider-title">URL 占位符说明</span>
               </el-divider>
               <div class="placeholder-help">
-                <div v-for="p in currentMeta?.params || []" :key="p" class="placeholder-item">
+                <div v-for="p in (currentMeta && currentMeta.params || [])" :key="p" class="placeholder-item">
                   <code class="code-inline">{{ '{' + p + '}' }}</code>
                   <span>URL 路径参数：如 /orders/<code>{{ '{' + p + '}' }}</code>/status</span>
                 </div>
-                <div v-for="p in currentMeta?.params || []" :key="'body-' + p" class="placeholder-item">
+                <div v-for="p in (currentMeta && currentMeta.params || [])" :key="'body-' + p" class="placeholder-item">
                   <code class="code-inline">{{ '{' + '{' + p + '}' + '}' }}</code>
                   <span>请求体模板变量（POST Body 中使用）</span>
                 </div>
@@ -132,22 +124,20 @@
 
           <!-- Tab 2: 请求头 -->
           <el-tab-pane name="headers">
-            <template #label>
-              <span>
-                Headers
-                <el-badge
-                  v-if="headerCount > 0"
-                  :value="headerCount"
-                  class="tab-badge"
-                  type="primary"
-                />
-              </span>
-            </template>
+            <span slot="label">
+              Headers
+              <el-badge
+                v-if="headerCount > 0"
+                :value="headerCount"
+                class="tab-badge"
+                type="primary"
+              />
+            </span>
             <div class="tab-content">
               <div class="headers-toolbar">
                 <span class="section-hint">配置请求头（如 Authorization、Content-Type）</span>
                 <el-button size="small" @click="addHeader" type="primary" plain>
-                  <el-icon><Plus /></el-icon> 添加
+                  <i class="el-icon-plus"></i> 添加
                 </el-button>
               </div>
               <div class="headers-table">
@@ -156,11 +146,7 @@
                   <span class="col-val">Value</span>
                   <span class="col-action"></span>
                 </div>
-                <div
-                  v-for="(header, idx) in headerList"
-                  :key="idx"
-                  class="headers-row"
-                >
+                <div v-for="(header, idx) in headerList" :key="idx" class="headers-row">
                   <el-input
                     v-model="header.key"
                     placeholder="Header 名称"
@@ -176,13 +162,12 @@
                     @input="dirty = true"
                   />
                   <el-button
-                    text
-                    type="danger"
+                    type="text"
                     size="small"
-                    class="col-action"
+                    class="col-action del-btn"
                     @click="removeHeader(idx)"
                   >
-                    <el-icon><Delete /></el-icon>
+                    <i class="el-icon-delete" style="color:#f56c6c;"></i>
                   </el-button>
                 </div>
                 <div v-if="headerList.length === 0" class="empty-tip">
@@ -192,7 +177,7 @@
             </div>
           </el-tab-pane>
 
-          <!-- Tab 3: 请求体（POST 时显示） -->
+          <!-- Tab 3: 请求体 -->
           <el-tab-pane label="Body" name="body">
             <div class="tab-content">
               <div class="body-toolbar">
@@ -206,18 +191,18 @@
                       :disabled="!currentConfig.requestBody"
                       @click="beautifyBody"
                     >
-                      <el-icon style="margin-right:4px"><MagicStick /></el-icon>
+                      <i class="el-icon-magic-stick" style="margin-right:4px;"></i>
                       美化
                     </el-button>
                   </el-tooltip>
-                  <el-tag type="info" size="small" effect="light">application/json</el-tag>
+                  <el-tag type="info" size="mini" effect="light">application/json</el-tag>
                 </div>
               </div>
               <div
                 v-if="currentConfig.method !== 'POST' && currentConfig.method !== 'PUT'"
                 class="body-disabled"
               >
-                <el-icon color="#ccc" size="32"><Warning /></el-icon>
+                <i class="el-icon-warning" style="font-size:32px;color:#ccc;"></i>
                 <span>当前请求方法（{{ currentConfig.method }}）无请求体</span>
               </div>
               <el-input
@@ -225,7 +210,7 @@
                 v-model="currentConfig.requestBody"
                 type="textarea"
                 :rows="10"
-                placeholder='{"orderId": "{{orderId}}", "rating": {{rating}}, "content": "{{content}}"}'
+                :placeholder="bodyPlaceholder"
                 class="body-editor"
                 @input="dirty = true"
               />
@@ -237,12 +222,12 @@
           </el-tab-pane>
         </el-tabs>
 
-        <!-- 保存按钮 -->
-        <div class="save-bar" :class="{ dirty }">
+        <!-- 保存栏 -->
+        <div class="save-bar" :class="{ dirty: dirty }">
           <span v-if="dirty" class="dirty-hint">⚠ 有未保存的修改</span>
           <el-button @click="resetForm">重置</el-button>
           <el-button type="primary" :loading="saving" @click="saveForm">
-            <el-icon><Check /></el-icon> 保存配置
+            <i class="el-icon-check"></i> 保存配置
           </el-button>
         </div>
       </div>
@@ -253,38 +238,37 @@
         v-if="testResult !== null || testing"
         :style="{ height: responseHeight + 'px' }"
       >
-        <!-- 拖拽调整高度的把手 -->
         <div class="resize-handle" @mousedown="startResize" title="拖动调整高度">
-          <div class="resize-dots" />
+          <div class="resize-dots"></div>
         </div>
 
         <div class="response-header">
           <span class="response-title">RESPONSE</span>
           <div class="response-meta" v-if="testResult">
-            <el-tag :type="testResult.success ? 'success' : 'danger'" size="small" effect="light">
+            <el-tag :type="testResult.success ? 'success' : 'danger'" size="mini" effect="light">
               {{ testResult.success ? '200 OK' : 'Error' }}
             </el-tag>
             <span class="elapsed">{{ testResult.elapsedMs }} ms</span>
             <el-tooltip content="复制响应内容" placement="top">
-              <el-button text size="small" @click="copyResponse" style="color:#666">
-                <el-icon><CopyDocument /></el-icon>
+              <el-button type="text" size="mini" @click="copyResponse">
+                <i class="el-icon-copy-document" style="color:#666;"></i>
               </el-button>
             </el-tooltip>
             <el-tooltip :content="responseExpanded ? '收起' : '最大化'" placement="top">
-              <el-button text size="small" @click="toggleExpand" style="color:#666">
-                <el-icon><component :is="responseExpanded ? 'Minus' : 'FullScreen'" /></el-icon>
+              <el-button type="text" size="mini" @click="toggleExpand">
+                <i :class="responseExpanded ? 'el-icon-minus' : 'el-icon-full-screen'" style="color:#666;"></i>
               </el-button>
             </el-tooltip>
             <el-tooltip content="关闭" placement="top">
-              <el-button text size="small" @click="testResult = null" style="color:#666">
-                <el-icon><Close /></el-icon>
+              <el-button type="text" size="mini" @click="testResult = null">
+                <i class="el-icon-close" style="color:#666;"></i>
               </el-button>
             </el-tooltip>
           </div>
         </div>
 
         <div v-if="testing" class="response-loading">
-          <el-icon class="rotating"><Loading /></el-icon>
+          <i class="el-icon-loading rotating"></i>
           <span>正在发送请求...</span>
         </div>
 
@@ -293,334 +277,277 @@
             <pre>{{ formatJson(testResult.responseBody) }}</pre>
           </div>
           <div v-else class="response-error">
-            <el-icon><CircleCloseFilled /></el-icon>
+            <i class="el-icon-circle-close-filled"></i>
             <span>{{ testResult.errorMessage }}</span>
           </div>
         </div>
       </div>
 
-      <!-- 测试参数（浮动面板） -->
+      <!-- 测试参数弹窗 -->
       <el-dialog
-        v-model="showTestDialog"
+        :visible.sync="showTestDialog"
         title="填写测试参数"
         width="420px"
         :close-on-click-modal="false"
       >
         <el-form :model="testParams" label-width="80px">
-          <el-form-item label="订单号" v-if="currentMeta?.params.includes('orderId')">
+          <el-form-item label="订单号" v-if="currentMeta && currentMeta.params.includes('orderId')">
             <el-input v-model="testParams.orderId" placeholder="如 ORD001" />
           </el-form-item>
-          <el-form-item label="评分" v-if="currentMeta?.params.includes('rating')">
+          <el-form-item label="评分" v-if="currentMeta && currentMeta.params.includes('rating')">
             <el-rate v-model="testParams.rating" show-text />
           </el-form-item>
-          <el-form-item label="评价内容" v-if="currentMeta?.params.includes('content')">
+          <el-form-item label="评价内容" v-if="currentMeta && currentMeta.params.includes('content')">
             <el-input v-model="testParams.content" type="textarea" :rows="3"
               placeholder="评价内容（可选，留空自动填充）" />
           </el-form-item>
         </el-form>
-        <template #footer>
+        <span slot="footer" class="dialog-footer">
           <el-button @click="showTestDialog = false">取消</el-button>
           <el-button type="primary" @click="confirmTest">发送</el-button>
-        </template>
+        </span>
       </el-dialog>
     </div>
 
-    <!-- 未选中时的空状态 -->
+    <!-- 未选中空状态 -->
     <div class="admin-main empty-main" v-else>
       <el-empty description="请从左侧选择一个接口进行配置" :image-size="120" />
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getAllConfigs, saveConfig, deleteConfig, testConfig, getOperationMetas } from '../api/index.js'
+<script>
+import { getAllConfigs, saveConfig, testConfig, getOperationMetas } from '../api/index.js'
 
-// ====================================================================
-// 静态操作定义
-// ====================================================================
-
-const operationList = [
-  { key: 'order_status',   label: '查询订单状态',   icon: '📋' },
-  { key: 'logistics_info', label: '查询物流信息',   icon: '📦' },
-  { key: 'submit_review',  label: '提交订单评价',   icon: '⭐' }
-]
-
-// ====================================================================
-// 状态
-// ====================================================================
-
-const selectedOp = ref(null)
-const configs = reactive({})
-const operationMetas = ref([])
-const activeTab = ref('basic')
-const dirty = ref(false)
-const saving = ref(false)
-const testing = ref(false)
-const testResult = ref(null)
-const showTestDialog = ref(false)
-
-// 响应面板高度（可拖拽）
-const responseHeight = ref(300)
-const responseExpanded = ref(false)
-let prevHeight = 300
-let resizing = false
-let startY = 0
-let startH = 0
-
-function startResize(e) {
-  resizing = true
-  startY = e.clientY
-  startH = responseHeight.value
-  document.body.style.cursor = 'row-resize'
-  document.body.style.userSelect = 'none'
-}
-
-function onMouseMove(e) {
-  if (!resizing) return
-  const delta = startY - e.clientY  // 向上拖 = 增大
-  const newH = Math.min(Math.max(startH + delta, 120), window.innerHeight - 200)
-  responseHeight.value = newH
-  responseExpanded.value = false
-}
-
-function onMouseUp() {
-  if (resizing) {
-    resizing = false
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-  }
-}
-
-function toggleExpand() {
-  if (responseExpanded.value) {
-    responseHeight.value = prevHeight
-    responseExpanded.value = false
-  } else {
-    prevHeight = responseHeight.value
-    responseHeight.value = window.innerHeight - 160
-    responseExpanded.value = true
-  }
-}
-
-function copyResponse() {
-  const text = testResult.value?.responseBody || ''
-  navigator.clipboard.writeText(formatJson(text))
-  ElMessage.success('已复制到剪贴板')
-}
-
-onMounted(() => {
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousemove', onMouseMove)
-  document.removeEventListener('mouseup', onMouseUp)
-})
-
-const currentConfig = ref(null)
-const headerList = ref([])
-
-const testParams = reactive({
-  orderId: 'ORD001',
-  rating: 5,
-  content: ''
-})
-
-// ====================================================================
-// 计算属性
-// ====================================================================
-
-const currentMeta = computed(() =>
-  operationMetas.value.find(m => m.operation === selectedOp.value)
-)
-
-const headerCount = computed(() =>
-  headerList.value.filter(h => h.key.trim()).length
-)
-
-// ====================================================================
-// 生命周期
-// ====================================================================
-
-onMounted(async () => {
-  await loadConfigs()
-  await loadMetas()
-  selectOperation(operationList[0].key)
-})
-
-// ====================================================================
-// 方法
-// ====================================================================
-
-async function loadConfigs() {
-  try {
-    const { data } = await getAllConfigs()
-    data.forEach(cfg => {
-      configs[cfg.operation] = cfg
-    })
-  } catch (e) {
-    ElMessage.warning('无法连接后端服务，请确认后端（8080 端口）已启动')
-  }
-}
-
-async function loadMetas() {
-  try {
-    const { data } = await getOperationMetas()
-    operationMetas.value = data
-  } catch (e) {
-    // 降级处理
-    operationMetas.value = [
-      { operation: 'order_status',   params: ['orderId'] },
-      { operation: 'logistics_info', params: ['orderId'] },
-      { operation: 'submit_review',  params: ['orderId', 'rating', 'content'] }
-    ]
-  }
-}
-
-function selectOperation(opKey) {
-  if (dirty.value && selectedOp.value !== opKey) {
-    // 简单切换，不提示（可改为弹窗确认）
-  }
-  selectedOp.value = opKey
-  const cfg = configs[opKey]
-  if (cfg) {
-    currentConfig.value = JSON.parse(JSON.stringify(cfg))
-    headerList.value = Object.entries(cfg.headers || {})
-      .map(([key, value]) => ({ key, value }))
-  } else {
-    currentConfig.value = {
-      operation: opKey,
-      enabled: false,
-      description: '',
-      url: '',
-      method: 'GET',
-      headers: {},
-      requestBody: ''
+export default {
+  name: 'AdminConfig',
+  data() {
+    return {
+      operationList: [
+        { key: 'order_status',   label: '查询订单状态', icon: '📋' },
+        { key: 'logistics_info', label: '查询物流信息', icon: '📦' },
+        { key: 'submit_review',  label: '提交订单评价', icon: '⭐' }
+      ],
+      selectedOp:      null,
+      configs:         {},
+      operationMetas:  [],
+      activeTab:       'basic',
+      dirty:           false,
+      saving:          false,
+      testing:         false,
+      testResult:      null,
+      showTestDialog:  false,
+      currentConfig:   null,
+      headerList:      [],
+      testParams:      { orderId: 'ORD001', rating: 5, content: '' },
+      // placeholder 中含有 {{...}} 字面量，不能直接写在模板属性里（Vue 2 会当插值处理）
+      bodyPlaceholder: '{"orderId": "{{orderId}}", "rating": {{rating}}, "content": "{{content}}"}',
+      // 响应面板高度（拖拽）
+      responseHeight:  300,
+      responseExpanded: false,
+      prevHeight:      300,
+      resizing:        false,
+      startY:          0,
+      startH:          0
     }
-    headerList.value = []
-  }
-  dirty.value = false
-  testResult.value = null
-  activeTab.value = 'basic'
-}
-
-function getMethodClass(method) {
-  const map = { GET: 'method-get', POST: 'method-post', PUT: 'method-put', DELETE: 'method-del' }
-  return map[method?.toUpperCase()] || 'method-get'
-}
-
-function addHeader() {
-  headerList.value.push({ key: '', value: '' })
-  dirty.value = true
-}
-
-function removeHeader(idx) {
-  headerList.value.splice(idx, 1)
-  dirty.value = true
-}
-
-function buildHeadersMap() {
-  const map = {}
-  headerList.value.forEach(h => {
-    if (h.key.trim()) map[h.key.trim()] = h.value
-  })
-  return map
-}
-
-function resetForm() {
-  selectOperation(selectedOp.value)
-}
-
-async function saveForm() {
-  if (!currentConfig.value.url?.trim()) {
-    ElMessage.warning('请填写接口 URL')
-    return
-  }
-  saving.value = true
-  try {
-    currentConfig.value.headers = buildHeadersMap()
-    const { data } = await saveConfig(selectedOp.value, currentConfig.value)
-    configs[selectedOp.value] = data
-    currentConfig.value = JSON.parse(JSON.stringify(data))
-    dirty.value = false
-    ElMessage.success('配置已保存')
-  } catch (e) {
-    ElMessage.error('保存失败：' + (e.response?.data?.error || e.message))
-  } finally {
-    saving.value = false
-  }
-}
-
-function runTest() {
-  if (!currentConfig.value.url?.trim()) {
-    ElMessage.warning('请先填写接口 URL')
-    return
-  }
-  showTestDialog.value = true
-}
-
-async function confirmTest() {
-  showTestDialog.value = false
-  testing.value = true
-  testResult.value = null
-
-  try {
-    // 先临时保存当前配置（不改变 enabled 状态）
-    const tempConfig = {
-      ...currentConfig.value,
-      headers: buildHeadersMap()
+  },
+  computed: {
+    currentMeta() {
+      return this.operationMetas.find(m => m.operation === this.selectedOp)
+    },
+    headerCount() {
+      return this.headerList.filter(h => h.key.trim()).length
     }
-    await saveConfig(selectedOp.value, tempConfig)
+  },
+  async mounted() {
+    document.addEventListener('mousemove', this.onMouseMove)
+    document.addEventListener('mouseup',   this.onMouseUp)
+    await this.loadConfigs()
+    await this.loadMetas()
+    this.selectOperation(this.operationList[0].key)
+  },
+  beforeDestroy() {
+    document.removeEventListener('mousemove', this.onMouseMove)
+    document.removeEventListener('mouseup',   this.onMouseUp)
+  },
+  methods: {
+    // ── 数据加载 ──────────────────────────────
+    async loadConfigs() {
+      try {
+        const { data } = await getAllConfigs()
+        data.forEach(cfg => {
+          this.$set(this.configs, cfg.operation, cfg)
+        })
+      } catch {
+        this.$message.warning('无法连接后端服务，请确认后端（8080 端口）已启动')
+      }
+    },
+    async loadMetas() {
+      try {
+        const { data } = await getOperationMetas()
+        this.operationMetas = data
+      } catch {
+        this.operationMetas = [
+          { operation: 'order_status',   params: ['orderId'] },
+          { operation: 'logistics_info', params: ['orderId'] },
+          { operation: 'submit_review',  params: ['orderId', 'rating', 'content'] }
+        ]
+      }
+    },
 
-    const { data } = await testConfig(selectedOp.value, {
-      orderId: testParams.orderId || 'ORD001',
-      rating: testParams.rating || 5,
-      content: testParams.content || ''
-    })
-    testResult.value = data
-    configs[selectedOp.value] = { ...configs[selectedOp.value], ...tempConfig }
-  } catch (e) {
-    testResult.value = {
-      success: false,
-      errorMessage: e.response?.data?.error || e.message,
-      elapsedMs: 0
+    // ── 操作选择 ──────────────────────────────
+    selectOperation(opKey) {
+      this.selectedOp = opKey
+      const cfg = this.configs[opKey]
+      if (cfg) {
+        this.currentConfig = JSON.parse(JSON.stringify(cfg))
+        this.headerList = Object.entries(cfg.headers || {}).map(([key, value]) => ({ key, value }))
+      } else {
+        this.currentConfig = { operation: opKey, enabled: false, description: '', url: '', method: 'GET', headers: {}, requestBody: '' }
+        this.headerList = []
+      }
+      this.dirty = false
+      this.testResult = null
+      this.activeTab = 'basic'
+    },
+    getMethodClass(method) {
+      const map = { GET: 'method-get', POST: 'method-post', PUT: 'method-put', DELETE: 'method-del' }
+      return map[method && method.toUpperCase()] || 'method-get'
+    },
+
+    // ── Headers ───────────────────────────────
+    addHeader() {
+      this.headerList.push({ key: '', value: '' })
+      this.dirty = true
+    },
+    removeHeader(idx) {
+      this.headerList.splice(idx, 1)
+      this.dirty = true
+    },
+    buildHeadersMap() {
+      const map = {}
+      this.headerList.forEach(h => { if (h.key.trim()) map[h.key.trim()] = h.value })
+      return map
+    },
+
+    // ── 保存 / 重置 ───────────────────────────
+    resetForm() { this.selectOperation(this.selectedOp) },
+    async saveForm() {
+      if (!this.currentConfig.url || !this.currentConfig.url.trim()) {
+        this.$message.warning('请填写接口 URL')
+        return
+      }
+      this.saving = true
+      try {
+        this.currentConfig.headers = this.buildHeadersMap()
+        const { data } = await saveConfig(this.selectedOp, this.currentConfig)
+        this.$set(this.configs, this.selectedOp, data)
+        this.currentConfig = JSON.parse(JSON.stringify(data))
+        this.dirty = false
+        this.$message.success('配置已保存')
+      } catch (e) {
+        this.$message.error('保存失败：' + (e.response && e.response.data && e.response.data.error || e.message))
+      } finally {
+        this.saving = false
+      }
+    },
+
+    // ── 测试 ──────────────────────────────────
+    runTest() {
+      if (!this.currentConfig.url || !this.currentConfig.url.trim()) {
+        this.$message.warning('请先填写接口 URL')
+        return
+      }
+      this.showTestDialog = true
+    },
+    async confirmTest() {
+      this.showTestDialog = false
+      this.testing = true
+      this.testResult = null
+      try {
+        const tempConfig = { ...this.currentConfig, headers: this.buildHeadersMap() }
+        await saveConfig(this.selectedOp, tempConfig)
+        const { data } = await testConfig(this.selectedOp, {
+          orderId: this.testParams.orderId || 'ORD001',
+          rating:  this.testParams.rating  || 5,
+          content: this.testParams.content || ''
+        })
+        this.testResult = data
+        this.$set(this.configs, this.selectedOp, { ...this.configs[this.selectedOp], ...tempConfig })
+      } catch (e) {
+        this.testResult = {
+          success: false,
+          errorMessage: e.response && e.response.data && e.response.data.error || e.message,
+          elapsedMs: 0
+        }
+      } finally {
+        this.testing = false
+      }
+    },
+
+    // ── JSON 美化 ─────────────────────────────
+    beautifyBody() {
+      const raw = this.currentConfig && this.currentConfig.requestBody
+      if (!raw) return
+      const PLACEHOLDER_RE = /\{\{(\w+)\}\}/g
+      const placeholders = []
+      const safe = raw.replace(PLACEHOLDER_RE, (m) => {
+        placeholders.push(m)
+        return `"__PH_${placeholders.length - 1}__"`
+      })
+      try {
+        let pretty = JSON.stringify(JSON.parse(safe), null, 2)
+        pretty = pretty.replace(/"__PH_(\d+)__"/g, (_, i) => placeholders[+i])
+        this.currentConfig.requestBody = pretty
+        this.dirty = true
+        this.$message.success('JSON 已格式化')
+      } catch {
+        this.$message.warning('JSON 格式有误，无法美化')
+      }
+    },
+    formatJson(str) {
+      if (!str) return ''
+      try { return JSON.stringify(JSON.parse(str), null, 2) } catch { return str }
+    },
+
+    // ── 响应面板工具 ──────────────────────────
+    copyResponse() {
+      const text = this.testResult && this.testResult.responseBody || ''
+      navigator.clipboard.writeText(this.formatJson(text))
+      this.$message.success('已复制到剪贴板')
+    },
+    toggleExpand() {
+      if (this.responseExpanded) {
+        this.responseHeight   = this.prevHeight
+        this.responseExpanded = false
+      } else {
+        this.prevHeight       = this.responseHeight
+        this.responseHeight   = window.innerHeight - 160
+        this.responseExpanded = true
+      }
+    },
+
+    // ── 拖拽调整响应面板高度 ──────────────────
+    startResize(e) {
+      this.resizing = true
+      this.startY   = e.clientY
+      this.startH   = this.responseHeight
+      document.body.style.cursor     = 'row-resize'
+      document.body.style.userSelect = 'none'
+    },
+    onMouseMove(e) {
+      if (!this.resizing) return
+      const delta = this.startY - e.clientY
+      this.responseHeight   = Math.min(Math.max(this.startH + delta, 120), window.innerHeight - 200)
+      this.responseExpanded = false
+    },
+    onMouseUp() {
+      if (this.resizing) {
+        this.resizing = false
+        document.body.style.cursor     = ''
+        document.body.style.userSelect = ''
+      }
     }
-  } finally {
-    testing.value = false
-  }
-}
-
-function beautifyBody() {
-  const raw = currentConfig.value?.requestBody
-  if (!raw) return
-  // 先把占位符临时换成合法 JSON 字符串，格式化后再换回
-  const PLACEHOLDER_RE = /\{\{(\w+)\}\}/g
-  const placeholders = []
-  const safe = raw.replace(PLACEHOLDER_RE, (m, key) => {
-    placeholders.push(m)
-    return `"__PH_${placeholders.length - 1}__"`
-  })
-  try {
-    let pretty = JSON.stringify(JSON.parse(safe), null, 2)
-    // 还原占位符（带引号版："__PH_0__" → {{key}}，不带引号版也兼容）
-    pretty = pretty.replace(/"__PH_(\d+)__"/g, (_, i) => placeholders[+i])
-    currentConfig.value.requestBody = pretty
-    dirty.value = true
-    ElMessage.success('JSON 已格式化')
-  } catch {
-    ElMessage.warning('JSON 格式有误，无法美化')
-  }
-}
-
-function formatJson(str) {
-  if (!str) return ''
-  try {
-    return JSON.stringify(JSON.parse(str), null, 2)
-  } catch {
-    return str
   }
 }
 </script>
@@ -668,22 +595,10 @@ function formatJson(str) {
   gap: 10px;
 }
 
-.op-item:hover {
-  background: #2a2d2e;
-}
+.op-item:hover  { background: #2a2d2e; }
+.op-item.active { background: #37373d; border-left-color: #1677ff; }
 
-.op-item.active {
-  background: #37373d;
-  border-left-color: #1677ff;
-}
-
-.op-item-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
-}
+.op-item-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
 
 .method-tag {
   font-family: monospace;
@@ -699,10 +614,7 @@ function formatJson(str) {
 .method-put  { background: #3a2a1a; color: #f4a261; }
 .method-del  { background: #3a1a1a; color: #f48771; }
 
-.op-item-info {
-  min-width: 0;
-  flex: 1;
-}
+.op-item-info { min-width: 0; flex: 1; }
 
 .op-item-name {
   font-size: 13px;
@@ -743,55 +655,42 @@ function formatJson(str) {
   background: #1e1e1e;
 }
 
-.empty-main {
-  justify-content: center;
-  align-items: center;
-}
+.empty-main { justify-content: center; align-items: center; }
 
 /* ── URL 栏 ── */
 .url-bar {
   display: flex;
   align-items: center;
-  gap: 0;
   padding: 12px 16px;
   background: #252526;
   border-bottom: 1px solid #3c3c3c;
   gap: 8px;
 }
 
-.method-select {
-  width: 110px;
-  flex-shrink: 0;
-}
+.method-select { width: 110px; flex-shrink: 0; }
 
-.method-select :deep(.el-input__wrapper) {
+.method-select ::v-deep .el-input__inner {
   background: #2d2d30;
-  border: 1px solid #3c3c3c;
-  box-shadow: none;
-  border-radius: 6px 0 0 6px;
-}
-
-.method-select :deep(.el-input__inner) {
+  border-color: #3c3c3c;
   color: #dce775;
   font-family: monospace;
   font-weight: 600;
+  border-radius: 6px 0 0 6px;
 }
 
-.url-input {
-  flex: 1;
-}
+.url-input { flex: 1; }
 
-.url-input :deep(.el-input__wrapper) {
+.url-input ::v-deep .el-input__inner {
   background: #2d2d30;
-  border: 1px solid #3c3c3c;
-  box-shadow: none;
-  border-radius: 0 6px 6px 0;
-}
-
-.url-input :deep(.el-input__inner) {
+  border-color: #3c3c3c;
   color: #d4d4d4;
   font-family: monospace;
   font-size: 13px;
+  border-radius: 0 6px 6px 0;
+}
+
+.url-input ::v-deep .el-input__inner:focus {
+  border-color: #1677ff;
 }
 
 .send-btn {
@@ -818,18 +717,16 @@ function formatJson(str) {
   overflow: hidden;
 }
 
-.config-tabs :deep(.el-tabs__header) {
+.config-tabs ::v-deep .el-tabs__header {
   background: #252526;
   margin: 0;
   border-bottom: 1px solid #3c3c3c;
   padding: 0 16px;
 }
 
-.config-tabs :deep(.el-tabs__nav-wrap::after) {
-  display: none;
-}
+.config-tabs ::v-deep .el-tabs__nav-wrap::after { display: none; }
 
-.config-tabs :deep(.el-tabs__item) {
+.config-tabs ::v-deep .el-tabs__item {
   color: #888;
   font-size: 13px;
   padding: 0 16px;
@@ -837,67 +734,34 @@ function formatJson(str) {
   line-height: 40px;
 }
 
-.config-tabs :deep(.el-tabs__item.is-active) {
-  color: #fff;
-}
+.config-tabs ::v-deep .el-tabs__item.is-active { color: #fff; }
+.config-tabs ::v-deep .el-tabs__active-bar { background: #1677ff; }
 
-.config-tabs :deep(.el-tabs__active-bar) {
-  background: #1677ff;
-}
-
-.config-tabs :deep(.el-tabs__content) {
+.config-tabs ::v-deep .el-tabs__content {
   flex: 1;
   overflow-y: auto;
   background: #1e1e1e;
 }
 
-.tab-badge {
-  margin-left: 4px;
-}
-
-.tab-content {
-  padding: 20px 24px;
-}
+.tab-badge { margin-left: 4px; }
+.tab-content { padding: 20px 24px; }
 
 /* ── 基本信息 Tab ── */
-.config-tabs :deep(.el-form-item__label) {
-  color: #bbb;
-  font-size: 13px;
-}
+.config-tabs ::v-deep .el-form-item__label { color: #bbb; font-size: 13px; }
 
-.config-tabs :deep(.el-input__wrapper) {
+.config-tabs ::v-deep .el-input__inner {
   background: #2d2d30;
-  border: 1px solid #3c3c3c;
-  box-shadow: none;
-}
-
-.config-tabs :deep(.el-input__inner) {
+  border-color: #3c3c3c;
   color: #d4d4d4;
 }
 
-.config-tabs :deep(.el-input__wrapper:hover),
-.config-tabs :deep(.el-input__wrapper.is-focus) {
-  border-color: #1677ff;
-}
+.config-tabs ::v-deep .el-input__inner:focus { border-color: #1677ff; }
 
-.enable-row {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-}
+.enable-row { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.enable-alert { max-width: 500px; }
 
-.enable-alert {
-  max-width: 500px;
-}
-
-.config-tabs :deep(.el-switch__label) {
-  color: #888;
-}
-
-.config-tabs :deep(.el-switch__label.is-active) {
-  color: #fff;
-}
+.config-tabs ::v-deep .el-switch__label { color: #888; }
+.config-tabs ::v-deep .el-switch__label.is-active { color: #fff; }
 
 .placeholder-help {
   display: flex;
@@ -909,12 +773,7 @@ function formatJson(str) {
   font-size: 13px;
 }
 
-.placeholder-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #bbb;
-}
+.placeholder-item { display: flex; align-items: center; gap: 12px; color: #bbb; }
 
 .code-inline {
   background: #1a3a4a;
@@ -926,48 +785,24 @@ function formatJson(str) {
   white-space: nowrap;
 }
 
-.divider-title {
-  color: #666;
-  font-size: 12px;
-}
+.divider-title { color: #666; font-size: 12px; }
 
-.config-tabs :deep(.el-divider__text) {
-  background: #1e1e1e;
-}
-
-.config-tabs :deep(.el-divider.el-divider--horizontal) {
-  border-top-color: #3c3c3c;
-}
+.config-tabs ::v-deep .el-divider__text { background: #1e1e1e; }
+.config-tabs ::v-deep .el-divider { border-top-color: #3c3c3c; }
 
 /* ── Headers Tab ── */
-.headers-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
+.headers-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.section-hint { font-size: 12px; color: #666; }
 
-.section-hint {
-  font-size: 12px;
-  color: #666;
-}
-
-.headers-table {
-  border: 1px solid #3c3c3c;
-  border-radius: 6px;
-  overflow: hidden;
-}
+.headers-table { border: 1px solid #3c3c3c; border-radius: 6px; overflow: hidden; }
 
 .headers-row {
   display: flex;
   align-items: center;
-  gap: 0;
   border-bottom: 1px solid #3c3c3c;
 }
 
-.headers-row:last-child {
-  border-bottom: none;
-}
+.headers-row:last-child { border-bottom: none; }
 
 .headers-row-head {
   background: #252526;
@@ -978,51 +813,23 @@ function formatJson(str) {
   text-transform: uppercase;
 }
 
-.col-key {
-  flex: 4;
-  min-width: 0;
-}
+.col-key    { flex: 4; min-width: 0; }
+.col-val    { flex: 6; min-width: 0; border-left: 1px solid #3c3c3c; }
+.col-action { flex: 0 0 40px; display: flex; justify-content: center; border-left: 1px solid #3c3c3c; }
 
-.col-val {
-  flex: 6;
-  min-width: 0;
-  border-left: 1px solid #3c3c3c;
-}
-
-.col-action {
-  flex: 0 0 40px;
-  display: flex;
-  justify-content: center;
-  border-left: 1px solid #3c3c3c;
-}
-
-.headers-row :deep(.el-input__wrapper) {
+.headers-row ::v-deep .el-input__inner {
   border: none;
   background: transparent;
-  box-shadow: none;
+  color: #d4d4d4;
   border-radius: 0;
+  box-shadow: none;
 }
 
-.empty-tip {
-  padding: 20px;
-  text-align: center;
-  color: #555;
-  font-size: 13px;
-}
+.empty-tip { padding: 20px; text-align: center; color: #555; font-size: 13px; }
 
 /* ── Body Tab ── */
-.body-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.body-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.body-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.body-toolbar-right { display: flex; align-items: center; gap: 8px; }
 
 .beautify-btn {
   background: #2d2d30 !important;
@@ -1031,10 +838,7 @@ function formatJson(str) {
   font-size: 12px;
 }
 
-.beautify-btn:hover {
-  border-color: #4ec9b0 !important;
-  color: #4ec9b0 !important;
-}
+.beautify-btn:hover { border-color: #4ec9b0 !important; }
 
 .body-disabled {
   display: flex;
@@ -1047,12 +851,12 @@ function formatJson(str) {
   font-size: 13px;
 }
 
-.body-editor :deep(.el-textarea__inner) {
+.body-editor ::v-deep .el-textarea__inner {
   background: #1a1a1a;
   color: #4ec9b0;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 13px;
-  border: 1px solid #3c3c3c;
+  border-color: #3c3c3c;
   border-radius: 6px;
   line-height: 1.6;
 }
@@ -1067,10 +871,7 @@ function formatJson(str) {
   line-height: 1.8;
 }
 
-.body-hint code {
-  color: #4ec9b0;
-  font-family: monospace;
-}
+.body-hint code { color: #4ec9b0; font-family: monospace; }
 
 /* ── 保存栏 ── */
 .save-bar {
@@ -1084,13 +885,9 @@ function formatJson(str) {
   flex-shrink: 0;
 }
 
-.dirty-hint {
-  font-size: 12px;
-  color: #f4a261;
-  margin-right: auto;
-}
+.dirty-hint { font-size: 12px; color: #f4a261; margin-right: auto; }
 
-.save-bar :deep(.el-button--default) {
+.save-bar ::v-deep .el-button--default {
   background: #2d2d30;
   border-color: #3c3c3c;
   color: #bbb;
@@ -1103,12 +900,10 @@ function formatJson(str) {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  /* height 由 JS 控制 */
   min-height: 120px;
   position: relative;
 }
 
-/* 拖拽把手 */
 .resize-handle {
   height: 8px;
   background: #252526;
@@ -1121,9 +916,7 @@ function formatJson(str) {
   transition: background 0.15s;
 }
 
-.resize-handle:hover {
-  background: #37373d;
-}
+.resize-handle:hover { background: #37373d; }
 
 .resize-dots {
   width: 32px;
@@ -1131,10 +924,8 @@ function formatJson(str) {
   border-radius: 2px;
   background: repeating-linear-gradient(
     90deg,
-    #555 0px,
-    #555 3px,
-    transparent 3px,
-    transparent 6px
+    #555 0px, #555 3px,
+    transparent 3px, transparent 6px
   );
 }
 
@@ -1148,35 +939,13 @@ function formatJson(str) {
   flex-shrink: 0;
 }
 
-.response-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: #888;
-  letter-spacing: 1px;
-}
+.response-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 1px; }
+.response-meta  { display: flex; align-items: center; gap: 6px; }
+.elapsed        { font-size: 12px; color: #666; font-family: monospace; }
 
-.response-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.response-content { flex: 1; overflow-y: auto; min-height: 0; }
 
-.elapsed {
-  font-size: 12px;
-  color: #666;
-  font-family: monospace;
-}
-
-.response-content {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.response-body {
-  height: 100%;
-  padding: 12px 16px;
-}
+.response-body { height: 100%; padding: 12px 16px; }
 
 .response-body pre {
   font-family: 'Consolas', 'Monaco', monospace;
@@ -1209,61 +978,42 @@ function formatJson(str) {
   flex-shrink: 0;
 }
 
-.rotating {
-  animation: spin 1s linear infinite;
-}
+.rotating { animation: spin 1s linear infinite; }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
-/* ── 暗色主题覆盖 ── */
-:deep(.el-dialog) {
+/* ── 弹窗暗色主题 ── */
+::v-deep .el-dialog {
   background: #2d2d30;
   border: 1px solid #3c3c3c;
 }
 
-:deep(.el-dialog__title) {
-  color: #d4d4d4;
-}
+::v-deep .el-dialog__title { color: #d4d4d4; }
+::v-deep .el-dialog__body  { color: #bbb; }
 
-:deep(.el-dialog__body) {
-  color: #bbb;
-}
+::v-deep .el-dialog .el-form-item__label { color: #bbb; }
 
-:deep(.el-dialog .el-form-item__label) {
-  color: #bbb;
-}
-
-:deep(.el-dialog .el-input__wrapper) {
+::v-deep .el-dialog .el-input__inner {
   background: #1e1e1e;
-  border: 1px solid #3c3c3c;
-  box-shadow: none;
-}
-
-:deep(.el-dialog .el-input__inner) {
+  border-color: #3c3c3c;
   color: #d4d4d4;
 }
 
-:deep(.el-dialog .el-textarea__inner) {
+::v-deep .el-dialog .el-textarea__inner {
   background: #1e1e1e;
-  border: 1px solid #3c3c3c;
-  box-shadow: none;
+  border-color: #3c3c3c;
   color: #d4d4d4;
 }
 
-:deep(.el-dialog .el-button--default) {
+::v-deep .el-dialog .el-button--default {
   background: #2d2d30;
   border-color: #3c3c3c;
   color: #bbb;
 }
 
-:deep(.el-rate .el-rate__icon) {
-  color: #666;
-}
-
-:deep(.el-rate .el-rate__icon.is-active) {
-  color: #f4a261;
-}
+::v-deep .el-rate .el-rate__icon { color: #666; }
+::v-deep .el-rate .el-rate__icon.is-active { color: #f4a261; }
 </style>
