@@ -1,6 +1,6 @@
 package com.example.mallcs.config;
 
-import com.example.mallcs.security.JwtAuthFilter;
+import com.example.mallcs.security.AesAuthFilter;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +28,7 @@ import java.util.List;
  *   <li>ASYNC dispatch  - 直接放行（SSE 流式接口异步回调线程无法携带 SecurityContext）</li>
  *   <li>/api/auth/**    - 公开（登录/注册）</li>
  *   <li>OPTIONS         - 跨域预检直接放行</li>
- *   <li>其他 /api/**    - 需要 JWT 认证</li>
+ *   <li>其他 /api/**    - 需要 AES Token 认证</li>
  *   <li>Stateless session，无 CSRF</li>
  * </ul>
  */
@@ -36,10 +36,10 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
+    private final AesAuthFilter aesAuthFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
-        this.jwtAuthFilter = jwtAuthFilter;
+    public SecurityConfig(AesAuthFilter aesAuthFilter) {
+        this.aesAuthFilter = aesAuthFilter;
     }
 
     @Bean
@@ -55,7 +55,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(aesAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

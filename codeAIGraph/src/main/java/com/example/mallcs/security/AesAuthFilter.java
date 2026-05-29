@@ -17,18 +17,21 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Token 认证过滤器 —— 解析请求头中的 Bearer Token（AES 加密），设置 SecurityContext。
+ * AES Token 认证过滤器 —— 解析请求头中的 Bearer Token（自研 AES-256/CBC 加密），
+ * 验证通过后设置 Spring Security 上下文。
  *
  * <p>同时将 userId 存入 request attribute，供 Controller 直接使用。
+ *
+ * @see AesTokenUtil
  */
 @Component
-public class JwtAuthFilter extends OncePerRequestFilter {
+public class AesAuthFilter extends OncePerRequestFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
+    private static final Logger log = LoggerFactory.getLogger(AesAuthFilter.class);
 
     private final AesTokenUtil tokenUtil;
 
-    public JwtAuthFilter(AesTokenUtil tokenUtil) {
+    public AesAuthFilter(AesTokenUtil tokenUtil) {
         this.tokenUtil = tokenUtil;
     }
 
@@ -55,7 +58,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
-                log.warn("[Token] 解析失败: {}", e.getMessage());
+                log.warn("[AesToken] 解析失败: {}", e.getMessage());
             }
         }
 
